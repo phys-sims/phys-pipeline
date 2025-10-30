@@ -1,9 +1,11 @@
 name: Project field sync (labels -> fields)
+
 on:
   issues:
     types: [labeled, unlabeled, edited, reopened]
   pull_request:
     types: [labeled, unlabeled, edited, ready_for_review, reopened, closed]
+
 jobs:
   sync:
     runs-on: ubuntu-latest
@@ -16,17 +18,26 @@ jobs:
       - uses: actions/github-script@v7
         with:
           script: |
-            // ----- CONFIGURE ME -----
-            const ORG = "phys-sims";
-            const PROJECT_NUMBER = 2; // integer
-            const FIELD_STATUS   = "Status";   // Single-select
-            const FIELD_AREA     = "Area";     // Single-select
-            const FIELD_PRIORITY = "Priority"; // Single-select
+            // =======================
+            // ====== CONFIG =========
+            // Who owns the Projects (v2) board?
+            const OWNER = "phys-sims";      // org or username
+            const OWNER_KIND = "org";       // "org" | "user"
+
+            // Identify the project by NUMBER (preferred) or TITLE (set one)
+            const PROJECT_NUMBER = 2;       // set to null if using title
+            const PROJECT_TITLE = null;     // e.g. "Engineering", else null
+
+            // Field names on the project
+            const FIELD_STATUS   = "Status";    // Single-select
+            const FIELD_AREA     = "Area";      // Single-select
+            const FIELD_PRIORITY = "Priority";  // Single-select
+
             // Label -> field option mappings
             const MAP_STATUS = {
-              "status:ready": "Ready",
+              "status:ready":       "Ready",
               "status:in-progress": "In Progress",
-              "status:blocked": "Blocked"
+              "status:blocked":     "Blocked"
             };
             const MAP_AREA = {
               "area:phys-pipeline":  "phys-pipeline",
@@ -39,130 +50,260 @@ jobs:
               "prio:P1": "P1",
               "prio:P2": "P2"
             };
-            // -------------------------
+            // =======================
 
             const isIssue = !!context.payload.issue;
             const isPR = !!context.payload.pull_request;
-            const repo = context.repo.repo;
-            const nodeId = isIssue
+            if (!isIssue && !isPR) {
+              core.info("Not an issue or PR event; exiting.");
+              return;
+            }
+
+            const contentNodeId = isIssue
               ? context.payload.issue.node_id
               : context.payload.pull_request.node_id;
 
-            // 1) Get Project object + field IDs
-             const projQuery = `
-               query($org:String!, $number:Int!){
-                 organization(login:$org){
-                   projectV2(number:$number){
-                     id
-                     fields(first:100){
-                       nodes{
-                         __typename
-                         ... on ProjectV2FieldCommon { id name }
-                         ... on ProjectV2SingleSelectField { id name options { id name } }
-                         ... on ProjectV2IterationField { id name configuration { iterations { id startDate } } }
-                       }
-                     }
-                   }
-                 }
-               }`;
-            const { organization } = await github.graphql(projQuery, { org: ORG, number: PROJECT_NUMBER });
-            const project = organization.projectV2;
-            if (!project) core.setFailed("Project not found. Check ORG/PROJECT_NUMBER.");
-
-            const fields = {};
-            for (const f of project.fields.nodes) fields[f.name] = f;
-
-            function getOptionId(fieldName, optionName){
-              const f = fields[fieldName];
-              if (!f || !f.options) return null;
-              const opt = f.options.find(o=>o.name === optionName);
-              return opt?.id || null;
+            // ---------- Helpers ----------
+            async function resolveProject() {
+              if (OWNER_KIND === "org") {
+                if (PROJECT_TITLE) {
+                  const q = `
+                    query($login:String!){
+                      organization(login:$login){
+                        projectsV2(first:50){
+                          nodes { id number title }
+                        }
+                      }
+                    }`;
+                  const { organization } = await github.graphql(q, { login: OWNER });
+                  const match = organization.projectsV2.nodes.find(p => p.title === PROJECT_TITLE);
+                  if (!match) {
+                    core.setFailed(\`No org project titled "\${PROJECT_TITLE}" under \${OWNER}. Found: \${organization.projectsV2.nodes.map(p => p.number + ":" + p.title).join(", ")}\`);
+                    return null;
+                  }
+                  core.info(\`Resolved org project #\${match.number} "\${match.title}"\`);
+                  return match;
+                } else {
+                  if (typeof PROJECT_NUMBER !== "number") {
+                    core.setFailed("PROJECT_NUMBER must be a number or set PROJECT_TITLE.");
+                    return null;
+                  }
+                  const q = `
+                    query($login:String!, $number:Int!){
+                      organization(login:$login){
+                        projectV2(number:$number){ id number title }
+                      }
+                    }`;
+                  const { organization } = await github.graphql(q, { login: OWNER, number: PROJECT_NUMBER });
+                  if (!organization?.projectV2) {
+                    core.setFailed(\`Could not resolve org project number \${PROJECT_NUMBER} under \${OWNER}.\`);
+                    return null;
+                  }
+                  return organization.projectV2;
+                }
+              } else if (OWNER_KIND === "user") {
+                if (PROJECT_TITLE) {
+                  const q = `
+                    query($login:String!){
+                      user(login:$login){
+                        projectsV2(first:50){
+                          nodes { id number title }
+                        }
+                      }
+                    }`;
+                  const { user } = await github.graphql(q, { login: OWNER });
+                  const match = user.projectsV2.nodes.find(p => p.title === PROJECT_TITLE);
+                  if (!match) {
+                    core.setFailed(\`No user project titled "\${PROJECT_TITLE}" under \${OWNER}. Found: \${user.projectsV2.nodes.map(p => p.number + ":" + p.title).join(", ")}\`);
+                    return null;
+                  }
+                  core.info(\`Resolved user project #\${match.number} "\${match.title}"\`);
+                  return match;
+                } else {
+                  if (typeof PROJECT_NUMBER !== "number") {
+                    core.setFailed("PROJECT_NUMBER must be a number or set PROJECT_TITLE.");
+                    return null;
+                  }
+                  const q = `
+                    query($login:String!, $number:Int!){
+                      user(login:$login){
+                        projectV2(number:$number){ id number title }
+                      }
+                    }`;
+                  const { user } = await github.graphql(q, { login: OWNER, number: PROJECT_NUMBER });
+                  if (!user?.projectV2) {
+                    core.setFailed(\`Could not resolve user project number \${PROJECT_NUMBER} under \${OWNER}.\`);
+                    return null;
+                  }
+                  return user.projectV2;
+                }
+              } else {
+                core.setFailed('OWNER_KIND must be "org" or "user".');
+                return null;
+              }
             }
 
-            // 2) Ensure the content (issue/PR) is in the Project
-            const addItemMutation = `
-              mutation($projectId:ID!, $contentId:ID!){
-                addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } }
-              }`;
-            let itemId;
-            try {
-              const addResp = await github.graphql(addItemMutation, { projectId: project.id, contentId: nodeId });
-              itemId = addResp.addProjectV2ItemById.item.id;
-            } catch (e) {
-              // If already exists, we need to find the item ID
-              const lookup = `
-                query($projectId:ID!, $contentId:ID!){
+            async function fetchFields(projectId) {
+              const q = `
+                query($projectId:ID!){
                   node(id:$projectId){
                     ... on ProjectV2{
-                      items(first:100, query:""){
+                      id
+                      fields(first:100){
                         nodes{
-                          id
-                          content{ __typename ... on Issue{ id } ... on PullRequest{ id } }
+                          __typename
+                          ... on ProjectV2FieldCommon { id name }
+                          ... on ProjectV2SingleSelectField { id name options { id name } }
+                          ... on ProjectV2IterationField { id name configuration { iterations { id title startDate } } }
                         }
                       }
                     }
                   }
                 }`;
-              const res = await github.graphql(lookup, { projectId: project.id, contentId: nodeId });
-              itemId = res.node.items.nodes.find(n=>n.content?.id === nodeId)?.id;
-            }
-            if (!itemId) core.setFailed("Could not get Project itemId for this content.");
-
-            // 3) Gather labels on this issue/PR
-            let labels = [];
-            if (isIssue) {
-              labels = context.payload.issue.labels.map(l=>l.name);
-            } else {
-              labels = context.payload.pull_request.labels.map(l=>l.name);
-            }
-            const labelSet = new Set(labels);
-
-            // 4) Decide field values based on labels
-            const statusOpt = Object.keys(MAP_STATUS).find(k=>labelSet.has(k));
-            const areaOpt   = Object.keys(MAP_AREA).find(k=>labelSet.has(k));
-            const prioOpt   = Object.keys(MAP_PRIORITY).find(k=>labelSet.has(k));
-
-            const updates = [];
-
-            if (statusOpt) {
-              const optionId = getOptionId(FIELD_STATUS, MAP_STATUS[statusOpt]);
-              if (optionId) updates.push({ fieldId: fields[FIELD_STATUS].id, sOptId: optionId });
-            }
-            if (areaOpt) {
-              const optionId = getOptionId(FIELD_AREA, MAP_AREA[areaOpt]);
-              if (optionId) updates.push({ fieldId: fields[FIELD_AREA].id, sOptId: optionId });
-            }
-            if (prioOpt) {
-              const optionId = getOptionId(FIELD_PRIORITY, MAP_PRIORITY[prioOpt]);
-              if (optionId) updates.push({ fieldId: fields[FIELD_PRIORITY].id, sOptId: optionId });
+              const { node } = await github.graphql(q, { projectId });
+              if (!node) {
+                core.setFailed("Failed to fetch fields for project.");
+                return null;
+              }
+              const byName = {};
+              for (const f of node.fields.nodes) {
+                if (f?.name) byName[f.name] = f;
+              }
+              return byName;
             }
 
-            if (updates.length === 0) {
-              core.info("No mapped labels found; nothing to update.");
+            async function ensureItem(projectId, contentId) {
+              // First try to add (fast path)
+              const add = `
+                mutation($projectId:ID!, $contentId:ID!){
+                  addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } }
+                }`;
+              try {
+                const resp = await github.graphql(add, { projectId, contentId });
+                return resp.addProjectV2ItemById.item.id;
+              } catch (e) {
+                // Likely already present; fall through to lookup
+                core.info("Add failed (likely already present). Looking up item id...");
+              }
+
+              // Paginate items to find the one with this contentId
+              let cursor = null;
+              while (true) {
+                const q = `
+                  query($projectId:ID!, $after:String){
+                    node(id:$projectId){
+                      ... on ProjectV2{
+                        items(first:100, after:$after){
+                          nodes{
+                            id
+                            content { __typename ... on Issue { id } ... on PullRequest { id } }
+                          }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }
+                  }`;
+                const { node } = await github.graphql(q, { projectId, after: cursor });
+                const nodes = node.items.nodes;
+                const hit = nodes.find(n => n.content?.id === contentId);
+                if (hit) return hit.id;
+                const pi = node.items.pageInfo;
+                if (!pi.hasNextPage) break;
+                cursor = pi.endCursor;
+              }
+              return null;
+            }
+
+            function pick(map, labelSet) {
+              const key = Object.keys(map).find(k => labelSet.has(k));
+              return key ? map[key] : null;
+            }
+
+            function getSelectOptionId(fieldsByName, fieldName, optionName) {
+              const f = fieldsByName[fieldName];
+              if (!f || !f.options) return null;
+              const opt = f.options.find(o => o.name === optionName);
+              return opt?.id || null;
+            }
+
+            async function setSingleSelect(projectId, itemId, fieldId, optionId) {
+              const m = `
+                mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
+                  updateProjectV2ItemFieldValue(input:{
+                    projectId:$projectId, itemId:$itemId,
+                    fieldId:$fieldId, value:{ singleSelectOptionId:$optionId }
+                  }){ clientMutationId }
+                }`;
+              await github.graphql(m, { projectId, itemId, fieldId, optionId });
+            }
+
+            // ---------- Main ----------
+            const project = await resolveProject();
+            if (!project) return;
+
+            const fieldsByName = await fetchFields(project.id);
+            if (!fieldsByName) return;
+
+            const itemId = await ensureItem(project.id, contentNodeId);
+            if (!itemId) {
+              core.setFailed("Could not find or create project item for this content.");
               return;
             }
 
-            // 5) Apply updates
-            const setSelectMutation = `
-              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
-                updateProjectV2ItemFieldValue(input:{
-                  projectId:$projectId, itemId:$itemId,
-                  fieldId:$fieldId, value:{ singleSelectOptionId:$optionId }
-                }){ clientMutationId }
-              }`;
-            const setTextMutation = `
-              mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $text:String!){
-                updateProjectV2ItemFieldValue(input:{
-                  projectId:$projectId, itemId:$itemId,
-                  fieldId:$fieldId, value:{ text:$text }
-                }){ clientMutationId }
-              }`;
+            // Collect labels
+            const labels = isIssue
+              ? (context.payload.issue.labels || []).map(l => l.name)
+              : (context.payload.pull_request.labels || []).map(l => l.name);
+            const labelSet = new Set(labels);
+
+            // Decide values
+            const statusVal = pick(MAP_STATUS, labelSet);
+            const areaVal   = pick(MAP_AREA, labelSet);
+            const prioVal   = pick(MAP_PRIORITY, labelSet);
+
+            const updates = [];
+
+            if (statusVal) {
+              const optId = getSelectOptionId(fieldsByName, FIELD_STATUS, statusVal);
+              if (!optId) {
+                core.warning(`No option "${statusVal}" in field "${FIELD_STATUS}". Available: ${
+                  (fieldsByName[FIELD_STATUS]?.options || []).map(o=>o.name).join(", ")
+                }`);
+              } else {
+                updates.push({ kind: "select", fieldId: fieldsByName[FIELD_STATUS].id, optionId: optId });
+              }
+            }
+
+            if (areaVal) {
+              const optId = getSelectOptionId(fieldsByName, FIELD_AREA, areaVal);
+              if (!optId) {
+                core.warning(`No option "${areaVal}" in field "${FIELD_AREA}". Available: ${
+                  (fieldsByName[FIELD_AREA]?.options || []).map(o=>o.name).join(", ")
+                }`);
+              } else {
+                updates.push({ kind: "select", fieldId: fieldsByName[FIELD_AREA].id, optionId: optId });
+              }
+            }
+
+            if (prioVal) {
+              const optId = getSelectOptionId(fieldsByName, FIELD_PRIORITY, prioVal);
+              if (!optId) {
+                core.warning(`No option "${prioVal}" in field "${FIELD_PRIORITY}". Available: ${
+                  (fieldsByName[FIELD_PRIORITY]?.options || []).map(o=>o.name).join(", ")
+                }`);
+              } else {
+                updates.push({ kind: "select", fieldId: fieldsByName[FIELD_PRIORITY].id, optionId: optId });
+              }
+            }
+
+            if (updates.length === 0) {
+              core.info("No mapped labels present; nothing to update.");
+              return;
+            }
 
             for (const u of updates) {
-              if (u.sOptId) {
-                await github.graphql(setSelectMutation, { projectId: project.id, itemId, fieldId: u.fieldId, optionId: u.sOptId });
-              } else if (u.text !== undefined) {
-                await github.graphql(setTextMutation, { projectId: project.id, itemId, fieldId: u.fieldId, text: u.text });
+              if (u.kind === "select") {
+                await setSingleSelect(project.id, itemId, u.fieldId, u.optionId);
               }
             }
 
