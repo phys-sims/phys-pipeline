@@ -1,12 +1,15 @@
 name: Add issues/PRs to Project
+
 on:
   issues:
     types: [opened]
-  pull_request:
+  pull_request_target:        
     types: [opened, ready_for_review]
+
 jobs:
-  add:
+  add-to-project:
     runs-on: ubuntu-latest
+    if: ${{ github.actor != 'dependabot[bot]' }}
     steps:
       - uses: actions/add-to-project@v0.6.1
         with:
