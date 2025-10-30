@@ -21,8 +21,8 @@ jobs:
             // ===== CONFIG =====
             const OWNER = "phys-sims";         // org or username that owns the Project
             const OWNER_KIND = "org";           // "org" or "user"
-            const PROJECT_NUMBER = 2;           // set to a number, or null if using title
-            const PROJECT_TITLE = null;         // set to a string, or null to use number
+            const PROJECT_NUMBER = null;           // set to a number, or null if using title
+            const PROJECT_TITLE = "CPA 2025 - APS March";         // set to a string, or null to use number
 
             const FIELD_STATUS   = "Status";    // Single-select
             const FIELD_AREA     = "Area";      // Single-select
