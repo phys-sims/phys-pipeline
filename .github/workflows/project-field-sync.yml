@@ -3,26 +3,35 @@ name: Project field sync (labels -> fields)
 on:
   issues:
     types: [labeled, unlabeled, edited, reopened]
-  pull_request:
-    types: [labeled, unlabeled, edited, ready_for_review, reopened, closed]
+  pull_request_target:               # use _target_ so secrets are available on fork PRs
+    types: [labeled, unlabeled, edited, ready_for_review, reopened, closed, synchronize]
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      issues: write
-      pull-requests: write
-      repository-projects: write
+    # (Optional) skip for Dependabot
+    if: ${{ github.actor != 'dependabot[bot]' }}
+
     steps:
-      - uses: actions/github-script@v7
+      - name: Assert PAT present
+        run: |
+          if [ -z "${{ secrets.ADD_TO_PROJECT_PAT }}" ]; then
+            echo "ADD_TO_PROJECT_PAT is not available to this repo/event."
+            exit 1
+          fi
+
+      - name: Sync fields
+        uses: actions/github-script@v7
         with:
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}  # config: change PAT if needed
           script: |
             // ===== CONFIG =====
-            const OWNER = "phys-sims";         // org or username that owns the Project
-            const OWNER_KIND = "org";           // "org" or "user"
-            const PROJECT_NUMBER = null;           // set to a number, or null if using title
-            const PROJECT_TITLE = "CPA 2025 - APS March";         // set to a string, or null to use number
+            const OWNER = "phys-sims";     // org or username that owns the Project
+            const OWNER_KIND = "org";      // "org" or "user"
+
+            // Prefer number (most reliable). Set TITLE to null when NUMBER is set.
+            const PROJECT_NUMBER = 2;      // <- you said #2 is correct
+            const PROJECT_TITLE  = null;   // or exact title; keep null when using number
 
             const FIELD_STATUS   = "Status";    // Single-select
             const FIELD_AREA     = "Area";      // Single-select
@@ -39,103 +48,102 @@ jobs:
               "area:research-utils": "research-utils",
               "area:cpa-sim":        "cpa-sim"
             };
-            const MAP_PRIORITY = {
-              "prio:P0": "P0",
-              "prio:P1": "P1",
-              "prio:P2": "P2"
-            };
+            const MAP_PRIORITY = { "prio:P0": "P0", "prio:P1": "P1", "prio:P2": "P2" };
             // ===================
 
             const isIssue = !!context.payload.issue;
-            const isPR = !!context.payload.pull_request;
+            const isPR    = !!context.payload.pull_request;
             if (!isIssue && !isPR) {
               core.info("Not an issue or PR event; exiting.");
               return;
             }
-
             const contentNodeId = isIssue
               ? context.payload.issue.node_id
               : context.payload.pull_request.node_id;
 
+            async function listAllProjects(ownerKind, owner) {
+              const nodes = [];
+              let after = null;
+              while (true) {
+                const q =
+                  ownerKind === "org"
+                  ? `
+                    query($login:String!, $after:String){
+                      organization(login:$login){
+                        projectsV2(first:100, after:$after){
+                          nodes { id number title }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }`
+                  : `
+                    query($login:String!, $after:String){
+                      user(login:$login){
+                        projectsV2(first:100, after:$after){
+                          nodes { id number title }
+                          pageInfo { hasNextPage endCursor }
+                        }
+                      }
+                    }`;
+                const vars = { login: owner, after };
+                const data = await github.graphql(q, vars);
+                const container = ownerKind === "org" ? data.organization : data.user;
+                if (!container) break;
+                nodes.push(...(container.projectsV2.nodes || []));
+                const pi = container.projectsV2.pageInfo;
+                if (!pi?.hasNextPage) break;
+                after = pi.endCursor;
+              }
+              return nodes;
+            }
+
             async function resolveProject() {
-              if (OWNER_KIND === "org") {
-                if (PROJECT_TITLE && PROJECT_TITLE.length > 0) {
-                  const q = `
-                    query($login:String!){
-                      organization(login:$login){
-                        projectsV2(first:50){
-                          nodes { id number title }
-                        }
-                      }
-                    }`;
-                  const { organization } = await github.graphql(q, { login: OWNER });
-                  const match = (organization.projectsV2.nodes || []).find(p => p.title === PROJECT_TITLE);
-                  if (!match) {
-                    core.setFailed('No org project titled "' + PROJECT_TITLE + '" under ' + OWNER +
-                                   '. Found: ' + organization.projectsV2.nodes.map(p => p.number + ":" + p.title).join(", "));
-                    return null;
-                  }
-                  core.info("Resolved org project #" + match.number + ' "' + match.title + '"');
-                  return match;
-                } else {
-                  if (typeof PROJECT_NUMBER !== "number") {
-                    core.setFailed("PROJECT_NUMBER must be a number or set PROJECT_TITLE.");
-                    return null;
-                  }
-                  const q = `
+              // Resolve by NUMBER first (most reliable)
+              if (typeof PROJECT_NUMBER === "number") {
+                const q =
+                  OWNER_KIND === "org"
+                  ? `
                     query($login:String!, $number:Int!){
                       organization(login:$login){
                         projectV2(number:$number){ id number title }
                       }
-                    }`;
-                  const { organization } = await github.graphql(q, { login: OWNER, number: PROJECT_NUMBER });
-                  if (!organization || !organization.projectV2) {
-                    core.setFailed("Could not resolve org project number " + PROJECT_NUMBER + " under " + OWNER + ".");
-                    return null;
-                  }
-                  return organization.projectV2;
-                }
-              } else if (OWNER_KIND === "user") {
-                if (PROJECT_TITLE && PROJECT_TITLE.length > 0) {
-                  const q = `
-                    query($login:String!){
-                      user(login:$login){
-                        projectsV2(first:50){
-                          nodes { id number title }
-                        }
-                      }
-                    }`;
-                  const { user } = await github.graphql(q, { login: OWNER });
-                  const match = (user.projectsV2.nodes || []).find(p => p.title === PROJECT_TITLE);
-                  if (!match) {
-                    core.setFailed('No user project titled "' + PROJECT_TITLE + '" under ' + OWNER +
-                                   '. Found: ' + user.projectsV2.nodes.map(p => p.number + ":" + p.title).join(", "));
-                    return null;
-                  }
-                  core.info("Resolved user project #" + match.number + ' "' + match.title + '"');
-                  return match;
-                } else {
-                  if (typeof PROJECT_NUMBER !== "number") {
-                    core.setFailed("PROJECT_NUMBER must be a number or set PROJECT_TITLE.");
-                    return null;
-                  }
-                  const q = `
+                    }`
+                  : `
                     query($login:String!, $number:Int!){
                       user(login:$login){
                         projectV2(number:$number){ id number title }
                       }
                     }`;
-                  const { user } = await github.graphql(q, { login: OWNER, number: PROJECT_NUMBER });
-                  if (!user || !user.projectV2) {
-                    core.setFailed("Could not resolve user project number " + PROJECT_NUMBER + " under " + OWNER + ".");
-                    return null;
+                const vars = { login: OWNER, number: PROJECT_NUMBER };
+                try {
+                  const data = await github.graphql(q, vars);
+                  const container = OWNER_KIND === "org" ? data.organization : data.user;
+                  if (container?.projectV2) {
+                    core.info(`Resolved project #${container.projectV2.number} "${container.projectV2.title}"`);
+                    return container.projectV2;
                   }
-                  return user.projectV2;
+                } catch (e) {
+                  core.warning(`projectV2(number:${PROJECT_NUMBER}) lookup failed: ${e.message}`);
                 }
-              } else {
-                core.setFailed('OWNER_KIND must be "org" or "user".');
+              }
+
+              // Fallback: resolve by TITLE with pagination (be careful with hyphen vs en-dash)
+              if (PROJECT_TITLE && PROJECT_TITLE.length > 0) {
+                const all = await listAllProjects(OWNER_KIND, OWNER);
+                const match = all.find(p => p.title === PROJECT_TITLE);
+                if (match) {
+                  core.info(`Resolved project by title: #${match.number} "${match.title}"`);
+                  return match;
+                }
+                core.setFailed(
+                  `No project titled "${PROJECT_TITLE}" under ${OWNER_KIND} ${OWNER}. Found: ` +
+                  all.map(p => `${p.number}:"${p.title}"`).join(", ")
+                );
                 return null;
               }
+
+              core.setFailed("Set PROJECT_NUMBER or PROJECT_TITLE to resolve the project.");
+              return null;
             }
 
             async function fetchFields(projectId) {
@@ -155,14 +163,14 @@ jobs:
                     }
                   }
                 }`;
-              const { node } = await github.graphql(q, { projectId: projectId });
+              const { node } = await github.graphql(q, { projectId });
               if (!node) {
                 core.setFailed("Failed to fetch fields for project.");
                 return null;
               }
               const byName = {};
-              for (const f of node.fields.nodes) {
-                if (f && f.name) byName[f.name] = f;
+              for (const f of node.fields.nodes || []) {
+                if (f?.name) byName[f.name] = f;
               }
               return byName;
             }
@@ -173,13 +181,13 @@ jobs:
                   addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } }
                 }`;
               try {
-                const resp = await github.graphql(add, { projectId: projectId, contentId: contentId });
+                const resp = await github.graphql(add, { projectId, contentId });
                 return resp.addProjectV2ItemById.item.id;
               } catch (e) {
-                core.info("Add failed (likely already present). Looking up item id...");
+                core.info(`Add failed (maybe already present): ${e.message}. Scanning items...`);
               }
 
-              let cursor = null;
+              let after = null;
               while (true) {
                 const q = `
                   query($projectId:ID!, $after:String){
@@ -195,21 +203,20 @@ jobs:
                       }
                     }
                   }`;
-                const { node } = await github.graphql(q, { projectId: projectId, after: cursor });
-                const nodes = node.items.nodes || [];
+                const { node } = await github.graphql(q, { projectId, after });
+                const nodes = node?.items?.nodes || [];
                 const hit = nodes.find(n => n.content && n.content.id === contentId);
                 if (hit) return hit.id;
-                const pi = node.items.pageInfo;
-                if (!pi.hasNextPage) break;
-                cursor = pi.endCursor;
+                const pi = node?.items?.pageInfo;
+                if (!pi?.hasNextPage) break;
+                after = pi.endCursor;
               }
               return null;
             }
 
             function pick(map, labelSet) {
-              const keys = Object.keys(map);
-              for (const k of keys) {
-                if (labelSet.has(k)) return map[k];
+              for (const key of Object.keys(map)) {
+                if (labelSet.has(key)) return map[key];
               }
               return null;
             }
@@ -229,10 +236,10 @@ jobs:
                     fieldId:$fieldId, value:{ singleSelectOptionId:$optionId }
                   }){ clientMutationId }
                 }`;
-              await github.graphql(m, { projectId: projectId, itemId: itemId, fieldId: fieldId, optionId: optionId });
+              await github.graphql(m, { projectId, itemId, fieldId, optionId });
             }
 
-            // Main
+            // ---- Main ----
             const project = await resolveProject();
             if (!project) return;
 
@@ -245,54 +252,56 @@ jobs:
               return;
             }
 
-            const labels = isIssue
-              ? (context.payload.issue.labels || []).map(l => l.name)
-              : (context.payload.pull_request.labels || []).map(l => l.name);
-            const labelSet = new Set(labels);
+            const labels = new Set(
+              (isIssue
+                ? (context.payload.issue.labels || []).map(l => l.name)
+                : (context.payload.pull_request.labels || []).map(l => l.name)
+              ) || []
+            );
 
-            const statusVal = pick(MAP_STATUS, labelSet);
-            const areaVal   = pick(MAP_AREA, labelSet);
-            const prioVal   = pick(MAP_PRIORITY, labelSet);
+            const statusVal = pick(MAP_STATUS, labels);
+            const areaVal   = pick(MAP_AREA, labels);
+            const prioVal   = pick(MAP_PRIORITY, labels);
 
-            const updates = [];
+            const pending = [];
 
             if (statusVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_STATUS, statusVal);
               if (!optId) {
-                core.warning('No option "' + statusVal + '" in field "' + FIELD_STATUS + '". Available: ' +
-                  ((fieldsByName[FIELD_STATUS] && fieldsByName[FIELD_STATUS].options) ? fieldsByName[FIELD_STATUS].options.map(o => o.name).join(", ") : ""));
+                core.warning(`No option "${statusVal}" in "${FIELD_STATUS}". Have: ${
+                  (fieldsByName[FIELD_STATUS]?.options || []).map(o=>o.name).join(", ")
+                }`);
               } else {
-                updates.push({ fieldId: fieldsByName[FIELD_STATUS].id, optionId: optId });
+                pending.push({ fieldId: fieldsByName[FIELD_STATUS].id, optionId: optId });
               }
             }
-
             if (areaVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_AREA, areaVal);
               if (!optId) {
-                core.warning('No option "' + areaVal + '" in field "' + FIELD_AREA + '". Available: ' +
-                  ((fieldsByName[FIELD_AREA] && fieldsByName[FIELD_AREA].options) ? fieldsByName[FIELD_AREA].options.map(o => o.name).join(", ") : ""));
+                core.warning(`No option "${areaVal}" in "${FIELD_AREA}". Have: ${
+                  (fieldsByName[FIELD_AREA]?.options || []).map(o=>o.name).join(", ")
+                }`);
               } else {
-                updates.push({ fieldId: fieldsByName[FIELD_AREA].id, optionId: optId });
+                pending.push({ fieldId: fieldsByName[FIELD_AREA].id, optionId: optId });
               }
             }
-
             if (prioVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_PRIORITY, prioVal);
               if (!optId) {
-                core.warning('No option "' + prioVal + '" in field "' + FIELD_PRIORITY + '". Available: ' +
-                  ((fieldsByName[FIELD_PRIORITY] && fieldsByName[FIELD_PRIORITY].options) ? fieldsByName[FIELD_PRIORITY].options.map(o => o.name).join(", ") : ""));
+                core.warning(`No option "${prioVal}" in "${FIELD_PRIORITY}". Have: ${
+                  (fieldsByName[FIELD_PRIORITY]?.options || []).map(o=>o.name).join(", ")
+                }`);
               } else {
-                updates.push({ fieldId: fieldsByName[FIELD_PRIORITY].id, optionId: optId });
+                pending.push({ fieldId: fieldsByName[FIELD_PRIORITY].id, optionId: optId });
               }
             }
 
-            if (updates.length === 0) {
+            if (pending.length === 0) {
               core.info("No mapped labels present; nothing to update.");
               return;
             }
 
-            for (const u of updates) {
+            for (const u of pending) {
               await setSingleSelect(project.id, itemId, u.fieldId, u.optionId);
             }
-
             core.info("Project fields updated from labels.");
