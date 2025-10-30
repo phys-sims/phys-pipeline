@@ -1,0 +1,48 @@
+name: Seed labels
+on:
+  push:
+    paths: [".github/workflows/seed-labels.yml"]
+  workflow_dispatch:
+jobs:
+  seed:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const desired = [
+              // types
+              {name:"type:feature", color:"1f883d"},
+              {name:"type:test",    color:"1f883d"},
+              {name:"type:bench",   color:"1f883d"},
+              {name:"type:bug",     color:"d73a4a"},
+              // areas
+              {name:"area:phys-pipeline",  color:"0e8a16"},
+              {name:"area:abcdef-sim",     color:"0e8a16"},
+              {name:"area:research-utils", color:"0e8a16"},
+              {name:"area:cpa-sim",        color:"0e8a16"},
+              // priority
+              {name:"prio:P0", color:"b60205"},
+              {name:"prio:P1", color:"dbab09"},
+              {name:"prio:P2", color:"c5def5"},
+              // status helpers
+              {name:"status:ready",       color:"5319e7"},
+              {name:"status:in-progress", color:"5319e7"},
+              {name:"status:blocked",     color:"5319e7"},
+              // misc
+              {name:"physics", color:"006b75"},
+              {name:"infra",   color:"6f42c1"}
+            ];
+            const { data: existing } = await github.rest.issues.listLabelsForRepo({
+              owner: context.repo.owner, repo: context.repo.repo, per_page: 200
+            });
+            const existingNames = new Set(existing.map(l=>l.name));
+            for (const l of desired) {
+              if (!existingNames.has(l.name)) {
+                core.info(`Creating label ${l.name}`);
+                await github.rest.issues.createLabel({owner: context.repo.owner, repo: context.repo.repo, ...l});
+              }
+            }

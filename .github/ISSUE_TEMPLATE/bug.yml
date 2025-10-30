@@ -1,0 +1,18 @@
+name: "Bug"
+description: "Something broke"
+title: "[bug] <summary>"
+labels: ["type:bug"]
+body:
+  - type: textarea
+    id: repro
+    attributes:
+      label: Repro steps
+      placeholder: "Code snippet or test"
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs/traceback

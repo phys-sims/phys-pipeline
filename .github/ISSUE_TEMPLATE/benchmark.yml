@@ -1,0 +1,21 @@
+name: "Benchmark"
+description: "Performance measurement"
+title: "[bench] <summary>"
+labels: ["type:bench"]
+body:
+  - type: textarea
+    id: scenario
+    attributes:
+      label: Scenario
+      value: |
+        - Graph size:
+        - Cache: on/off
+        - N evals:
+  - type: textarea
+    id: metrics
+    attributes:
+      label: Metrics
+      value: |
+        - Walltime
+        - Cache hit rate
+        - Speedup vs baseline
