@@ -14,4 +14,4 @@ jobs:
       - uses: actions/add-to-project@v0.6.1
         with:
           project-url: https://github.com/orgs/phys-sims/projects/2
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
+          github-token: ${{ secrets.GITHUB_TOKEN }} # or: ${{ secrets.ADD_TO_PROJECT_PAT }}
