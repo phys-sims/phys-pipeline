@@ -3,9 +3,9 @@ on:
   workflow_dispatch:
     inputs:
       owner:
-        description: "org or username to scan"
-        required: true
-        default: "phys-sims"
+        description: "org or username to scan (defaults to repo owner)"
+        required: false
+        default: ""
 
 jobs:
   list-projects:
@@ -13,46 +13,53 @@ jobs:
     permissions:
       contents: read
       repository-projects: read
+      # read:org is needed to see org projects (granted to GITHUB_TOKEN if repo is in the org)
+    env:
+      OWNER: ${{ github.event.inputs.owner != '' && github.event.inputs.owner || github.repository_owner }}
     steps:
       - uses: actions/github-script@v7
         with:
           script: |
-            const owner = core.getInput("owner");
+            const owner = process.env.OWNER;
+            core.info("Scanning owner: " + owner);
+
             async function listOrg(login){
               const q = `
                 query($login:String!){
                   organization(login:$login){
-                    projectsV2(first:50){
-                      nodes { id number title url }
-                    }
+                    projectsV2(first:50){ nodes { id number title url } }
                   }
                 }`;
               try {
                 const { organization } = await github.graphql(q, { login });
                 if (!organization) { core.info("No org found: " + login); return; }
+                const nodes = organization.projectsV2.nodes || [];
                 core.info("ORG projects for " + login + ":");
-                for (const p of organization.projectsV2.nodes || []) {
-                  core.info("  #" + p.number + "  " + p.title + "  " + p.url + "  (id=" + p.id + ")");
-                }
-              } catch(e){ core.info("Org query failed: " + e.message); }
+                if (!nodes.length) core.info("  (none visible)");
+                for (const p of nodes) core.info("  #" + p.number + "  " + p.title + "  " + p.url + "  (id=" + p.id + ")");
+              } catch (e) {
+                core.info("Org query failed: " + e.message);
+              }
             }
+
             async function listUser(login){
               const q = `
                 query($login:String!){
                   user(login:$login){
-                    projectsV2(first:50){
-                      nodes { id number title url }
-                    }
+                    projectsV2(first:50){ nodes { id number title url } }
                   }
                 }`;
               try {
                 const { user } = await github.graphql(q, { login });
                 if (!user) { core.info("No user found: " + login); return; }
+                const nodes = user.projectsV2.nodes || [];
                 core.info("USER projects for " + login + ":");
-                for (const p of user.projectsV2.nodes || []) {
-                  core.info("  #" + p.number + "  " + p.title + "  " + p.url + "  (id=" + p.id + ")");
-                }
-              } catch(e){ core.info("User query failed: " + e.message); }
+                if (!nodes.length) core.info("  (none visible)");
+                for (const p of nodes) core.info("  #" + p.number + "  " + p.title + "  " + p.url + "  (id=" + p.id + ")");
+              } catch (e) {
+                core.info("User query failed: " + e.message);
+              }
             }
+
             await listOrg(owner);
             await listUser(owner);
