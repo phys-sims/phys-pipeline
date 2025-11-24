@@ -24,7 +24,7 @@ body:
   - type: textarea
     id: scope
     attributes:
-      label: Scope: In / Out
+      label: Scope In / Out
       value: |
         **In**
         - 
