@@ -9,7 +9,7 @@ on:
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # (Optional) skip for Dependabot
+    # skip for Dependabot
     if: ${{ github.actor != 'dependabot[bot]' }}
 
     steps:
@@ -30,7 +30,7 @@ jobs:
             const OWNER_KIND = "org";      // "org" or "user"
 
             // Prefer number (most reliable). Set TITLE to null when NUMBER is set.
-            const PROJECT_NUMBER = 2;      // <- you said #2 is correct
+            const PROJECT_NUMBER = 2;      // 
             const PROJECT_TITLE  = null;   // or exact title; keep null when using number
 
             const FIELD_STATUS   = "Status";    // Single-select

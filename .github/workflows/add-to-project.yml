@@ -7,7 +7,6 @@ on:
     types: [opened, ready_for_review]
 
 permissions:
-  # keep minimal permissions required by the workflow; GITHUB_TOKEN is not used for org ProjectV2 access
   contents: read
   issues: write
   pull-requests: write
@@ -20,4 +19,4 @@ jobs:
       - uses: actions/add-to-project@v0.6.1
         with:
           project-url: https://github.com/orgs/phys-sims/projects/2
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT}} # use an org-level PAT stored as the secret 
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT}}
