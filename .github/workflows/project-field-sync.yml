@@ -32,18 +32,18 @@ jobs:
             const PROJECT_NUMBER = 2;
             const PROJECT_TITLE  = null;
 
-            // Project field names (must match your Project exactly)
-            const FIELD_STATUS    = "Status";        // single-select
-            const FIELD_PRIORITY  = "Priority";      // single-select
-            const FIELD_SIZE      = "Size";          // single-select
-            const FIELD_ESTIMATE  = "Estimate (hrs)";// number
-            const FIELD_AREA      = "Area";          // single-select
-            const FIELD_ACTUAL    = "Actual (hrs)";  // number
-            const FIELD_RISK      = "Risk";          // single-select
-            const FIELD_BLOCKEDBY = "Blocked By";    // text
-            const FIELD_DELIV     = "Deliverable";   // text
+            // Field names must match the Project exactly
+            const FIELD_STATUS    = "Status";         // Single-select
+            const FIELD_PRIORITY  = "Priority";       // Single-select
+            const FIELD_SIZE      = "Size";           // Single-select
+            const FIELD_ESTIMATE  = "Estimate (hrs)"; // Number
+            const FIELD_AREA      = "Area";           // Single-select
+            const FIELD_ACTUAL    = "Actual (hrs)";   // Number
+            const FIELD_RISK      = "Risk";           // Single-select
+            const FIELD_BLOCKEDBY = "Blocked By";     // Text
+            const FIELD_DELIV     = "Deliverable";    // Text
 
-            // Label -> option mappings (case-sensitive on option names)
+            // Label -> option mappings (option names are case-sensitive)
             const MAP_STATUS = {
               "status:backlog":     "Backlog",
               "status:ready":       "Ready",
@@ -58,25 +58,16 @@ jobs:
               "area:research-utils": "research-utils",
               "area:infra/docs":     "infra/docs"
             };
-            const MAP_PRIORITY = {
-              "prio:P0": "P0",
-              "prio:P1": "P1",
-              "prio:P2": "P2"
-            };
-            // If you ever add size/risk labels, map them here too:
-            const MAP_SIZE = {
-              "size:XS":"XS","size:S":"S","size:M":"M","size:L":"L","size:XL":"XL"
-            };
-            const MAP_RISK = {
-              "risk:Low":"Low","risk:Med":"Med","risk:High":"High"
-            };
+            const MAP_PRIORITY = { "prio:P0":"P0", "prio:P1":"P1", "prio:P2":"P2" };
+            const MAP_SIZE     = { "size:XS":"XS","size:S":"S","size:M":"M","size:L":"L","size:XL":"XL" };
+            const MAP_RISK     = { "risk:Low":"Low","risk:Med":"Med","risk:High":"High" };
 
-            const DEFAULT_STATUS_ON_OPEN = "Backlog"; // initial default if none provided
+            const DEFAULT_STATUS_ON_OPEN = "Backlog";
             // ===================
 
             // --- helpers ---
-            function firstMatch(map, labelSet) {
-              for (const key of Object.keys(map)) if (labelSet.has(key)) return map[key];
+            function firstMatch(map, labelSet){
+              for(const k of Object.keys(map)) if(labelSet.has(k)) return map[k];
               return null;
             }
             function readFormField(body, heading){
@@ -90,7 +81,7 @@ jobs:
             function readNumber(body, heading){
               const raw = readFormField(body, heading);
               if(!raw) return null;
-              const m = raw.replace(/[, ]/g,"").match(/-?\d+(\.\d+)?/);
+              const m = raw.replace(/[, ]/g,"").match(/-?\\d+(\\.\\d+)?/);
               return m ? Number(m[0]) : null;
             }
             function inferDeliverableFromText(body){
@@ -98,15 +89,14 @@ jobs:
               const hits = new Set();
               if (t.includes("unit test")) hits.add("unit-tests");
               if (t.includes("bench"))     hits.add("benchmark");
-              if (t.includes("notebook") || t.includes("plot")) hits.add("plot");
-              if (t.includes("readme") || t.includes("docstring") || t.includes("doc")) hits.add("doc");
+              if (t.includes("plot") || t.includes("notebook")) hits.add("plot");
+              if (t.includes("docstring") || t.includes("readme") || t.includes("doc")) hits.add("doc");
               return Array.from(hits).join(", ");
             }
 
-            async function listAllProjects(ownerKind, owner) {
-              const nodes = [];
-              let after = null;
-              while (true) {
+            async function listAllProjects(ownerKind, owner){
+              const nodes = []; let after = null;
+              while(true){
                 const q = ownerKind === "org" ? `
                   query($login:String!, $after:String){
                     organization(login:$login){
@@ -124,20 +114,19 @@ jobs:
                       }
                     }
                   }`;
-                const vars = { login: owner, after };
-                const data = await github.graphql(q, vars);
+                const data = await github.graphql(q, { login: owner, after });
                 const container = ownerKind === "org" ? data.organization : data.user;
-                if (!container) break;
+                if(!container) break;
                 nodes.push(...(container.projectsV2.nodes || []));
                 const pi = container.projectsV2.pageInfo;
-                if (!pi?.hasNextPage) break;
+                if(!pi?.hasNextPage) break;
                 after = pi.endCursor;
               }
               return nodes;
             }
 
-            async function resolveProject() {
-              if (typeof PROJECT_NUMBER === "number") {
+            async function resolveProject(){
+              if (typeof PROJECT_NUMBER === "number"){
                 const q = OWNER_KIND === "org" ? `
                   query($login:String!, $number:Int!){
                     organization(login:$login){
@@ -153,7 +142,7 @@ jobs:
                 const container = OWNER_KIND === "org" ? data.organization : data.user;
                 if (container?.projectV2) return container.projectV2;
               }
-              if (PROJECT_TITLE) {
+              if (PROJECT_TITLE){
                 const all = await listAllProjects(OWNER_KIND, OWNER);
                 const hit = all.find(p => p.title === PROJECT_TITLE);
                 if (hit) return hit;
@@ -164,7 +153,8 @@ jobs:
               return null;
             }
 
-            async function fetchFields(projectId) {
+            async function fetchFields(projectId){
+              // NOTE: no Number/Text fragments — not in schema. We only need names/options.
               const q = `
                 query($projectId:ID!){
                   node(id:$projectId){
@@ -175,8 +165,6 @@ jobs:
                           __typename
                           ... on ProjectV2FieldCommon { id name }
                           ... on ProjectV2SingleSelectField { id name options { id name } }
-                          ... on ProjectV2NumberField { id name }
-                          ... on ProjectV2TextField { id name }
                           ... on ProjectV2IterationField { id name }
                         }
                       }
@@ -189,7 +177,7 @@ jobs:
               return byName;
             }
 
-            async function ensureItem(projectId, contentId) {
+            async function ensureItem(projectId, contentId){
               const add = `
                 mutation($projectId:ID!, $contentId:ID!){
                   addProjectV2ItemById(input:{projectId:$projectId, contentId:$contentId}){ item { id } }
@@ -198,10 +186,10 @@ jobs:
                 const resp = await github.graphql(add, { projectId, contentId });
                 return resp.addProjectV2ItemById.item.id;
               } catch (e) {
-                // already exists? scan
+                // likely already exists; scan
               }
               let after = null;
-              while (true) {
+              while(true){
                 const q = `
                   query($projectId:ID!, $after:String){
                     node(id:$projectId){
@@ -223,7 +211,7 @@ jobs:
               return null;
             }
 
-            async function setSelect(projectId, itemId, fieldId, optionId) {
+            async function setSelect(projectId, itemId, fieldId, optionId){
               const m = `
                 mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $optionId:String!){
                   updateProjectV2ItemFieldValue(input:{
@@ -233,7 +221,7 @@ jobs:
                 }`;
               await github.graphql(m, { projectId, itemId, fieldId, optionId });
             }
-            async function setNumber(projectId, itemId, fieldId, num) {
+            async function setNumber(projectId, itemId, fieldId, num){
               const m = `
                 mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $num:Float!){
                   updateProjectV2ItemFieldValue(input:{
@@ -243,7 +231,7 @@ jobs:
                 }`;
               await github.graphql(m, { projectId, itemId, fieldId, num });
             }
-            async function setText(projectId, itemId, fieldId, text) {
+            async function setText(projectId, itemId, fieldId, text){
               const m = `
                 mutation($projectId:ID!, $itemId:ID!, $fieldId:ID!, $text:String!){
                   updateProjectV2ItemFieldValue(input:{
@@ -253,7 +241,7 @@ jobs:
                 }`;
               await github.graphql(m, { projectId, itemId, fieldId, text });
             }
-            function getSelectOptionId(fieldsByName, fieldName, optionName) {
+            function getSelectOptionId(fieldsByName, fieldName, optionName){
               const f = fieldsByName[fieldName];
               if (!f || !f.options) return null;
               const opt = f.options.find(o => o.name === optionName);
@@ -283,7 +271,7 @@ jobs:
             const action = context.payload.action;
             const merged = isPR ? !!context.payload.pull_request.merged : false;
 
-            // --- select values ---
+            // --- select values (labels first, then form) ---
             let statusVal = firstMatch(MAP_STATUS, labels);
             let areaVal   = firstMatch(MAP_AREA, labels)   || readFormField(body, "Area");
             let prioVal   = firstMatch(MAP_PRIORITY, labels);
@@ -294,39 +282,34 @@ jobs:
             if (isPR && action === "closed" && merged) statusVal = "Done";
 
             // --- numbers/text from form ---
-            const estNum   = readNumber(body, "Estimate (hrs)");
-            const actNum   = readNumber(body, "Actual (hrs)"); // only if you add this to a form or edit manually
-            const blocked  = readFormField(body, "Blocked by") || readFormField(body, "Blocked By");
-            let deliver    = readFormField(body, "Deliverable");
+            const estNum  = readNumber(body, "Estimate (hrs)");
+            const actNum  = readNumber(body, "Actual (hrs)"); // optional if you add this later
+            const blocked = readFormField(body, "Blocked by") || readFormField(body, "Blocked By") || readFormField(body, "Block By");
+            let deliver   = readFormField(body, "Deliverable");
             if (!deliver) deliver = inferDeliverableFromText(body);
 
-            // --- apply updates (only when we have a value & field exists) ---
+            // --- apply
             const updates = [];
 
             if (statusVal && fields[FIELD_STATUS]) {
               const optId = getSelectOptionId(fields, FIELD_STATUS, statusVal);
               if (optId) updates.push(() => setSelect(project.id, itemId, fields[FIELD_STATUS].id, optId));
-              else core.warning(`No option "${statusVal}" for field ${FIELD_STATUS}`);
             }
             if (areaVal && fields[FIELD_AREA]) {
               const optId = getSelectOptionId(fields, FIELD_AREA, areaVal);
               if (optId) updates.push(() => setSelect(project.id, itemId, fields[FIELD_AREA].id, optId));
-              else core.warning(`No option "${areaVal}" for field ${FIELD_AREA}`);
             }
             if (prioVal && fields[FIELD_PRIORITY]) {
               const optId = getSelectOptionId(fields, FIELD_PRIORITY, prioVal);
               if (optId) updates.push(() => setSelect(project.id, itemId, fields[FIELD_PRIORITY].id, optId));
-              else core.warning(`No option "${prioVal}" for field ${FIELD_PRIORITY}`);
             }
             if (sizeVal && fields[FIELD_SIZE]) {
               const optId = getSelectOptionId(fields, FIELD_SIZE, sizeVal);
               if (optId) updates.push(() => setSelect(project.id, itemId, fields[FIELD_SIZE].id, optId));
-              else core.warning(`No option "${sizeVal}" for field ${FIELD_SIZE}`);
             }
             if (riskVal && fields[FIELD_RISK]) {
               const optId = getSelectOptionId(fields, FIELD_RISK, riskVal);
               if (optId) updates.push(() => setSelect(project.id, itemId, fields[FIELD_RISK].id, optId));
-              else core.warning(`No option "${riskVal}" for field ${FIELD_RISK}`);
             }
             if (Number.isFinite(estNum) && fields[FIELD_ESTIMATE]) {
               updates.push(() => setNumber(project.id, itemId, fields[FIELD_ESTIMATE].id, estNum));
