@@ -2,9 +2,9 @@ name: Project field sync (labels -> fields)
 
 on:
   issues:
-    types: [labeled, unlabeled, edited, reopened]
+    types: [opened, labeled, unlabeled, edited, reopened]
   pull_request_target:               # use _target_ so secrets are available on fork PRs
-    types: [labeled, unlabeled, edited, ready_for_review, reopened, closed, synchronize]
+    types: [opened, labeled, unlabeled, edited, ready_for_review, reopened, closed, synchronize]
 
 jobs:
   sync:
