@@ -77,9 +77,11 @@ jobs:
               return null;
             }
 
+            function escRe(s){ return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
             function readSection(body, heading){
               if (!body) return null;
-              const re = new RegExp(`\\n###\\s*${heading}\\s*\\n([\\s\\S]*?)(\\n###|$)`,"i");
+              const re = new RegExp(`(?:^|\\r?\\n)###\\s*${escRe(heading)}\\s*\\r?\\n([\\s\\S]*?)(?=\\r?\\n###|$)`, "i");
               const m = body.match(re);
               if (!m) return null;
               const raw = m[1].trim();
