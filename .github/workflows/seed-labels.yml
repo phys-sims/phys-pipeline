@@ -15,6 +15,9 @@ jobs:
           script: |
             const desired = [
               // types
+              { name:"type:task",  color:"1f883d" },
+              { name:"type:spike", color:"5319e7" },
+              { name:"type:chore", color:"6f42c1" },
               {name:"type:feature", color:"1f883d"},
               {name:"type:test",    color:"1f883d"},
               {name:"type:bench",   color:"1f883d"},
@@ -36,6 +39,8 @@ jobs:
               {name:"status:review",      color:"5319e7"},
               {name:"status:done",        color:"5319e7"},
               // misc
+              { name:"api",        color:"0e8a16" },
+              { name:"integration",color:"0e8a16" },
               {name:"physics", color:"006b75"},
               {name:"infra",   color:"6f42c1"}
             ];

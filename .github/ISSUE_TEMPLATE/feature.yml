@@ -1,7 +1,7 @@
 name: "Feature"
 description: "New capability or significant refactor"
 title: "[feat] <short summary>"
-labels: ["type:feature"]
+labels: ["type:feature","status:backlog"]
 body:
   - type: input
     id: goal
@@ -35,18 +35,15 @@ body:
     id: area
     attributes:
       label: Area
-      options:
-        - phys-pipeline
-        - abcdef-sim
-        - research-utils
-        - cpa-sim
-        - infra/docs
+      options: ["phys-pipeline","abcdef-sim","research-utils","cpa-sim","infra/docs"]
+    validations:
+      required: true
 
   - type: dropdown
     id: size
     attributes:
       label: Size
-      options: [XS, S, M, L, XL]
+      options: ["XS","S","M","L","XL"]
 
   - type: input
     id: estimate
@@ -55,10 +52,18 @@ body:
       placeholder: "e.g., 12"
 
   - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      options: ["P0","P1","P2"]
+    validations:
+      required: true
+
+  - type: dropdown
     id: risk
     attributes:
       label: Risk
-      options: [Low, Med, High]
+      options: ["Low","Med","High"]
 
   - type: input
     id: blockedby
