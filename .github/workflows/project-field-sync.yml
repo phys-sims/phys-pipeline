@@ -2,14 +2,14 @@ name: Project field sync (labels -> fields)
 
 on:
   issues:
-    types: [opened, labeled, unlabeled, edited, reopened]
-  pull_request_target:               # use _target_ so secrets are available on fork PRs
-    types: [opened, labeled, unlabeled, edited, ready_for_review, reopened, closed, synchronize]
+    types: [opened, edited, reopened, labeled, unlabeled]
+  pull_request_target:
+    types: [opened, edited, reopened, ready_for_review, synchronize, labeled, unlabeled, closed]
+  workflow_dispatch:
 
 jobs:
   sync:
     runs-on: ubuntu-latest
-    # skip for Dependabot
     if: ${{ github.actor != 'dependabot[bot]' }}
 
     steps:
@@ -23,43 +23,53 @@ jobs:
       - name: Sync fields
         uses: actions/github-script@v7
         with:
-          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}  # config: change PAT if needed
+          github-token: ${{ secrets.ADD_TO_PROJECT_PAT }}
           script: |
             // ===== CONFIG =====
-            const OWNER = "phys-sims";     // org or username that owns the Project
-            const OWNER_KIND = "org";      // "org" or "user"
+            const OWNER = "phys-sims";
+            const OWNER_KIND = "org";
 
-            // Prefer number (most reliable). Set TITLE to null when NUMBER is set.
-            const PROJECT_NUMBER = 2;      // 
-            const PROJECT_TITLE  = null;   // or exact title; keep null when using number
+            const PROJECT_NUMBER = 2;
+            const PROJECT_TITLE  = null;
 
             const FIELD_STATUS   = "Status";    // Single-select
             const FIELD_AREA     = "Area";      // Single-select
             const FIELD_PRIORITY = "Priority";  // Single-select
 
+            // Map labels -> exact Project option names (case-sensitive)
             const MAP_STATUS = {
-              "status:ready": "Ready",
-              "status:in-progress": "In Progress",
-              "status:blocked": "Blocked"
+              "status:backlog":     "Backlog",
+              "status:ready":       "Ready",
+              "status:in-progress": "In progress",
+              "status:review":      "In review",
+              "status:done":        "Done"
             };
             const MAP_AREA = {
               "area:phys-pipeline":  "phys-pipeline",
               "area:abcdef-sim":     "abcdef-sim",
               "area:research-utils": "research-utils",
-              "area:cpa-sim":        "cpa-sim"
+              "area:cpa-sim":        "cpa-sim",
+              "area:infra/docs":     "infra/docs"
             };
             const MAP_PRIORITY = { "prio:P0": "P0", "prio:P1": "P1", "prio:P2": "P2" };
+            const DEFAULT_STATUS_ON_OPEN = "Backlog";
             // ===================
 
-            const isIssue = !!context.payload.issue;
-            const isPR    = !!context.payload.pull_request;
-            if (!isIssue && !isPR) {
-              core.info("Not an issue or PR event; exiting.");
-              return;
+            function readFormField(body, heading){
+              if(!body) return null;
+              const re = new RegExp(`\\n###\\s*${heading}\\s*\\n([\\s\\S]*?)(\\n###|$)`,"i");
+              const m = body.match(re);
+              if(!m) return null;
+              const val = m[1].trim().split("\n").map(s=>s.trim()).filter(Boolean)[0];
+              return val || null;
             }
-            const contentNodeId = isIssue
-              ? context.payload.issue.node_id
-              : context.payload.pull_request.node_id;
+
+            function pick(map, labelSet) {
+              for (const key of Object.keys(map)) {
+                if (labelSet.has(key)) return map[key];
+              }
+              return null;
+            }
 
             async function listAllProjects(ownerKind, owner) {
               const nodes = [];
@@ -98,7 +108,6 @@ jobs:
             }
 
             async function resolveProject() {
-              // Resolve by NUMBER first (most reliable)
               if (typeof PROJECT_NUMBER === "number") {
                 const q =
                   OWNER_KIND === "org"
@@ -126,8 +135,6 @@ jobs:
                   core.warning(`projectV2(number:${PROJECT_NUMBER}) lookup failed: ${e.message}`);
                 }
               }
-
-              // Fallback: resolve by TITLE with pagination (be careful with hyphen vs en-dash)
               if (PROJECT_TITLE && PROJECT_TITLE.length > 0) {
                 const all = await listAllProjects(OWNER_KIND, OWNER);
                 const match = all.find(p => p.title === PROJECT_TITLE);
@@ -141,7 +148,6 @@ jobs:
                 );
                 return null;
               }
-
               core.setFailed("Set PROJECT_NUMBER or PROJECT_TITLE to resolve the project.");
               return null;
             }
@@ -172,6 +178,7 @@ jobs:
               for (const f of node.fields.nodes || []) {
                 if (f?.name) byName[f.name] = f;
               }
+              core.info("Project fields/options loaded.");
               return byName;
             }
 
@@ -184,7 +191,9 @@ jobs:
                 const resp = await github.graphql(add, { projectId, contentId });
                 return resp.addProjectV2ItemById.item.id;
               } catch (e) {
-                core.info(`Add failed (maybe already present): ${e.message}. Scanning items...`);
+                core.error(`Add to project failed: ${e.message}`);
+                if (e.errors) core.error(JSON.stringify(e.errors));
+                core.info("Scanning items as fallback (may already exist)...");
               }
 
               let after = null;
@@ -214,13 +223,6 @@ jobs:
               return null;
             }
 
-            function pick(map, labelSet) {
-              for (const key of Object.keys(map)) {
-                if (labelSet.has(key)) return map[key];
-              }
-              return null;
-            }
-
             function getSelectOptionId(fieldsByName, fieldName, optionName) {
               const f = fieldsByName[fieldName];
               if (!f || !f.options) return null;
@@ -240,11 +242,22 @@ jobs:
             }
 
             // ---- Main ----
+            const isIssue = !!context.payload.issue;
+            const isPR    = !!context.payload.pull_request;
+            if (!isIssue && !isPR) {
+              core.info("Not an issue or PR event; exiting.");
+              return;
+            }
+
             const project = await resolveProject();
             if (!project) return;
 
             const fieldsByName = await fetchFields(project.id);
             if (!fieldsByName) return;
+
+            const contentNodeId = isIssue
+              ? context.payload.issue.node_id
+              : context.payload.pull_request.node_id;
 
             const itemId = await ensureItem(project.id, contentNodeId);
             if (!itemId) {
@@ -258,50 +271,54 @@ jobs:
                 : (context.payload.pull_request.labels || []).map(l => l.name)
               ) || []
             );
+            const body = isIssue
+              ? (context.payload.issue.body || "")
+              : (context.payload.pull_request?.body || "");
 
-            const statusVal = pick(MAP_STATUS, labels);
-            const areaVal   = pick(MAP_AREA, labels);
-            const prioVal   = pick(MAP_PRIORITY, labels);
+            const action = context.payload.action;
+            const merged = isPR ? !!context.payload.pull_request.merged : false;
+
+            // 1) labels
+            let statusVal = Object.keys(MAP_STATUS).find(k => labels.has(k)) ? MAP_STATUS[[...labels].find(l => MAP_STATUS[l])] : null;
+            let areaVal   = Object.keys(MAP_AREA).find(k => labels.has(k))   ? MAP_AREA[[...labels].find(l => MAP_AREA[l])]   : null;
+            let prioVal   = Object.keys(MAP_PRIORITY).find(k => labels.has(k)) ? MAP_PRIORITY[[...labels].find(l => MAP_PRIORITY[l])] : null;
+
+            // 2) form body fallback
+            if (!areaVal)   areaVal   = readFormField(body, "Area");
+            if (!prioVal)   prioVal   = readFormField(body, "Priority");
+
+            // 3) sensible defaults/status rules
+            if (!statusVal) {
+              statusVal = DEFAULT_STATUS_ON_OPEN;           // Backlog on open
+            }
+            if (isPR && action === "closed" && merged) {
+              statusVal = "Done";                           // auto-done on merge
+            }
 
             const pending = [];
 
             if (statusVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_STATUS, statusVal);
-              if (!optId) {
-                core.warning(`No option "${statusVal}" in "${FIELD_STATUS}". Have: ${
-                  (fieldsByName[FIELD_STATUS]?.options || []).map(o=>o.name).join(", ")
-                }`);
-              } else {
-                pending.push({ fieldId: fieldsByName[FIELD_STATUS].id, optionId: optId });
-              }
+              if (!optId) core.warning(`No option "${statusVal}" in "${FIELD_STATUS}".`);
+              else pending.push({ fieldId: fieldsByName[FIELD_STATUS].id, optionId: optId });
             }
             if (areaVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_AREA, areaVal);
-              if (!optId) {
-                core.warning(`No option "${areaVal}" in "${FIELD_AREA}". Have: ${
-                  (fieldsByName[FIELD_AREA]?.options || []).map(o=>o.name).join(", ")
-                }`);
-              } else {
-                pending.push({ fieldId: fieldsByName[FIELD_AREA].id, optionId: optId });
-              }
+              if (!optId) core.warning(`No option "${areaVal}" in "${FIELD_AREA}".`);
+              else pending.push({ fieldId: fieldsByName[FIELD_AREA].id, optionId: optId });
             }
             if (prioVal) {
               const optId = getSelectOptionId(fieldsByName, FIELD_PRIORITY, prioVal);
-              if (!optId) {
-                core.warning(`No option "${prioVal}" in "${FIELD_PRIORITY}". Have: ${
-                  (fieldsByName[FIELD_PRIORITY]?.options || []).map(o=>o.name).join(", ")
-                }`);
-              } else {
-                pending.push({ fieldId: fieldsByName[FIELD_PRIORITY].id, optionId: optId });
-              }
+              if (!optId) core.warning(`No option "${prioVal}" in "${FIELD_PRIORITY}".`);
+              else pending.push({ fieldId: fieldsByName[FIELD_PRIORITY].id, optionId: optId });
             }
 
             if (pending.length === 0) {
-              core.info("No mapped labels present; nothing to update.");
+              core.info("No mapped labels/body values found; nothing to update.");
               return;
             }
 
             for (const u of pending) {
               await setSingleSelect(project.id, itemId, u.fieldId, u.optionId);
             }
-            core.info("Project fields updated from labels.");
+            core.info(`Project fields updated (${pending.length} field(s)).`);
