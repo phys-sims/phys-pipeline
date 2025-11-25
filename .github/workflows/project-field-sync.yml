@@ -32,16 +32,16 @@ jobs:
             const PROJECT_NUMBER = 2;
             const PROJECT_TITLE  = null;
 
-            // Field names must match the Project exactly
-            const FIELD_STATUS    = "Status";         // Single-select
-            const FIELD_PRIORITY  = "Priority";       // Single-select
-            const FIELD_SIZE      = "Size";           // Single-select
-            const FIELD_ESTIMATE  = "Estimate (hrs)"; // Number
-            const FIELD_AREA      = "Area";           // Single-select
-            const FIELD_ACTUAL    = "Actual (hrs)";   // Number
-            const FIELD_RISK      = "Risk";           // Single-select
-            const FIELD_BLOCKEDBY = "Blocked By";     // Text
-            const FIELD_DELIV     = "Deliverable";    // Text
+            // Field names (must match Project exactly)
+            const FIELD_STATUS    = "Status";         // single-select
+            const FIELD_PRIORITY  = "Priority";       // single-select
+            const FIELD_SIZE      = "Size";           // single-select
+            const FIELD_ESTIMATE  = "Estimate (hrs)"; // number
+            const FIELD_AREA      = "Area";           // single-select
+            const FIELD_ACTUAL    = "Actual (hrs)";   // number
+            const FIELD_RISK      = "Risk";           // single-select
+            const FIELD_BLOCKEDBY = "Blocked By";     // text
+            const FIELD_DELIV     = "Deliverable";    // single-select  <-- important
 
             // Label -> option mappings (option names are case-sensitive)
             const MAP_STATUS = {
@@ -61,6 +61,7 @@ jobs:
             const MAP_PRIORITY = { "prio:P0":"P0", "prio:P1":"P1", "prio:P2":"P2" };
             const MAP_SIZE     = { "size:XS":"XS","size:S":"S","size:M":"M","size:L":"L","size:XL":"XL" };
             const MAP_RISK     = { "risk:Low":"Low","risk:Med":"Med","risk:High":"High" };
+            const MAP_DELIV    = { "deliverable:plot":"plot","deliverable:unit-tests":"unit-tests","deliverable:benchmark":"benchmark","deliverable:doc":"doc" };
 
             const DEFAULT_STATUS_ON_OPEN = "Backlog";
             // ===================
@@ -84,14 +85,17 @@ jobs:
               const m = raw.replace(/[, ]/g,"").match(/-?\\d+(\\.\\d+)?/);
               return m ? Number(m[0]) : null;
             }
-            function inferDeliverableFromText(body){
-              const t = (body||"").toLowerCase();
-              const hits = new Set();
-              if (t.includes("unit test")) hits.add("unit-tests");
-              if (t.includes("bench"))     hits.add("benchmark");
-              if (t.includes("plot") || t.includes("notebook")) hits.add("plot");
-              if (t.includes("docstring") || t.includes("readme") || t.includes("doc")) hits.add("doc");
-              return Array.from(hits).join(", ");
+            function normalizeDeliverable(s){
+              if(!s) return null;
+              const t = s.toLowerCase().trim();
+              if (t.includes(",")) { // take first token if comma-separated
+                return normalizeDeliverable(t.split(",")[0]);
+              }
+              if (t === "unit tests" || t === "unittests" || t === "unit_test") return "unit-tests";
+              if (t === "bench" || t === "benchmarking") return "benchmark";
+              if (t === "plots") return "plot";
+              if (t === "docs" || t === "documentation") return "doc";
+              return t;
             }
 
             async function listAllProjects(ownerKind, owner){
@@ -154,7 +158,7 @@ jobs:
             }
 
             async function fetchFields(projectId){
-              // NOTE: no Number/Text fragments — not in schema. We only need names/options.
+              // We only need names and options; types come from presence of options
               const q = `
                 query($projectId:ID!){
                   node(id:$projectId){
@@ -186,7 +190,7 @@ jobs:
                 const resp = await github.graphql(add, { projectId, contentId });
                 return resp.addProjectV2ItemById.item.id;
               } catch (e) {
-                // likely already exists; scan
+                // already exists; scan
               }
               let after = null;
               while(true){
@@ -244,7 +248,9 @@ jobs:
             function getSelectOptionId(fieldsByName, fieldName, optionName){
               const f = fieldsByName[fieldName];
               if (!f || !f.options) return null;
-              const opt = f.options.find(o => o.name === optionName);
+              // case-sensitive match first, then case-insensitive
+              let opt = f.options.find(o => o.name === optionName);
+              if (!opt) opt = f.options.find(o => o.name.toLowerCase() === optionName.toLowerCase());
               return opt ? opt.id : null;
             }
 
@@ -278,15 +284,24 @@ jobs:
             let sizeVal   = firstMatch(MAP_SIZE, labels)    || readFormField(body, "Size");
             let riskVal   = firstMatch(MAP_RISK, labels)    || readFormField(body, "Risk");
 
+            // Deliverable (single-select)
+            let delivVal  = firstMatch(MAP_DELIV, labels)   || normalizeDeliverable(readFormField(body, "Deliverable"));
+            if (!delivVal) {
+              // very light heuristic: infer from acceptance text if present
+              const t = (body||"").toLowerCase();
+              if (t.includes("unit test")) delivVal = "unit-tests";
+              else if (t.includes("bench")) delivVal = "benchmark";
+              else if (t.includes("plot") || t.includes("notebook")) delivVal = "plot";
+              else if (t.includes("docstring") || t.includes("readme") || t.includes("doc")) delivVal = "doc";
+            }
+
             if (!statusVal && action === "opened") statusVal = DEFAULT_STATUS_ON_OPEN;
             if (isPR && action === "closed" && merged) statusVal = "Done";
 
             // --- numbers/text from form ---
             const estNum  = readNumber(body, "Estimate (hrs)");
-            const actNum  = readNumber(body, "Actual (hrs)"); // optional if you add this later
+            const actNum  = readNumber(body, "Actual (hrs)"); // optional
             const blocked = readFormField(body, "Blocked by") || readFormField(body, "Blocked By") || readFormField(body, "Block By");
-            let deliver   = readFormField(body, "Deliverable");
-            if (!deliver) deliver = inferDeliverableFromText(body);
 
             // --- apply
             const updates = [];
@@ -317,11 +332,20 @@ jobs:
             if (Number.isFinite(actNum) && fields[FIELD_ACTUAL]) {
               updates.push(() => setNumber(project.id, itemId, fields[FIELD_ACTUAL].id, actNum));
             }
-            if (blocked && fields[FIELD_BLOCKEDBY]) {
+            if (blocked && fields[FIELD_BLOCKEDBY] && !fields[FIELD_BLOCKEDBY].options) {
+              // Only write text if the field is not a single-select
               updates.push(() => setText(project.id, itemId, fields[FIELD_BLOCKEDBY].id, blocked));
             }
-            if (deliver && fields[FIELD_DELIV]) {
-              updates.push(() => setText(project.id, itemId, fields[FIELD_DELIV].id, deliver));
+            if (delivVal && fields[FIELD_DELIV]) {
+              // Deliverable is single-select
+              const optId = getSelectOptionId(fields, FIELD_DELIV, delivVal);
+              if (optId) {
+                updates.push(() => setSelect(project.id, itemId, fields[FIELD_DELIV].id, optId));
+              } else {
+                core.warning(`Deliverable value "${delivVal}" has no matching option in Project. Available: ${
+                  (fields[FIELD_DELIV].options||[]).map(o=>o.name).join(", ")
+                }`);
+              }
             }
 
             if (updates.length === 0) {
