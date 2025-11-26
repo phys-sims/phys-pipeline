@@ -3,17 +3,22 @@ on:
   push:
     paths: ["docs/adr/**"]
   workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
 jobs:
   reindex:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: true        # ensure the token is usable for push
       - uses: actions/setup-python@v5
         with: { python-version: "3.x" }
       - run: python scripts/adr_tools.py reindex
-      - uses: peter-evans/create-pull-request@v6
+      - uses: stefanzweifel/git-auto-commit-action@v5
         with:
-          commit-message: "chore(docs): update ADR index"
-          title: "Update ADR index"
-          branch: chore/update-adr-index
-          add-paths: docs/adr/INDEX.md
+          commit_message: "chore(docs): update ADR index"
+          file_pattern: docs/adr/INDEX.md
