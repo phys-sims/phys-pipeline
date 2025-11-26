@@ -1,0 +1,19 @@
+name: ADR index
+on:
+  push:
+    paths: ["docs/adr/**"]
+  workflow_dispatch:
+jobs:
+  reindex:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.x" }
+      - run: python scripts/adr_tools.py reindex
+      - uses: peter-evans/create-pull-request@v6
+        with:
+          commit-message: "chore(docs): update ADR index"
+          title: "Update ADR index"
+          branch: chore/update-adr-index
+          add-paths: docs/adr/INDEX.md
