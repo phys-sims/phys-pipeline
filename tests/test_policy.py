@@ -1,3 +1,5 @@
+import pytest
+
 from phys_pipeline.hashing import hash_policy
 from phys_pipeline.pipeline import SequentialPipeline
 from phys_pipeline.policy import PolicyBag
@@ -18,6 +20,7 @@ class PolicyStage(PipelineStage[SimpleState, PolicyCfg]):
         return StageResult(state=st)
 
 
+@pytest.mark.fast
 def test_policy_passed_and_hashed():
     st0 = SimpleState(payload=None)
     pipe = SequentialPipeline(
@@ -32,6 +35,7 @@ def test_policy_passed_and_hashed():
     assert out.provenance["stages"][0]["policy_hash"] == out.provenance["policy_hash"]
 
 
+@pytest.mark.fast
 def test_default_policy_used_when_run_policy_missing():
     st0 = SimpleState(payload=None)
     policy = PolicyBag({"sampling.N": 10})
@@ -48,6 +52,7 @@ def test_default_policy_used_when_run_policy_missing():
     assert out.provenance["stages"][0]["policy_hash"] == out.provenance["policy_hash"]
 
 
+@pytest.mark.fast
 def test_run_policy_overrides_default_policy():
     st0 = SimpleState(payload=None)
     default_policy = PolicyBag({"sampling.N": 10})
