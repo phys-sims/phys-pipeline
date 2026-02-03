@@ -45,7 +45,7 @@ jobs:
 
       - name: Typecheck (mypy)
         run: mypy # [tool.mypy] sets scope to src
-          
+
       - name: Tests (fast)
         run: pytest -q -m "not slow"
 

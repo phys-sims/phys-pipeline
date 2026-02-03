@@ -21,6 +21,7 @@ dev = [
   "ruff",
   "mypy",
   "codespell",
+  "pre-commit",
 ]
 
 # --- Black ---
@@ -35,7 +36,7 @@ target-version = "py311"
 line-length = 100
 
 [tool.ruff.lint]
-select = ["E", "F", "UP", "I"]  
+select = ["E", "F", "UP", "I"]
 ignore = []  # add codes you intentionally ignore
 
 # --- mypy ---
