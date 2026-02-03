@@ -30,7 +30,7 @@ repos:
         types: [python]
       - id: ruff-format                              # Black-compatible formatter
         types: [python]
-  
+
 
   # --- Formatting (Black) ---
   - repo: https://github.com/psf/black
@@ -51,11 +51,11 @@ repos:
     hooks:
       - id: mypy
         stages: [manual]
-        additional_dependencies: ["pydantic>=2.7", "matplotlib"]  # add stubs here if needed 
+        additional_dependencies: ["pydantic>=2.7", "matplotlib"]  # add stubs here if needed
 
   # --- Spell checking (codespell) ---
   - repo: https://github.com/codespell-project/codespell
     rev: v2.4.1
     hooks:
       - id: codespell
-   
+
