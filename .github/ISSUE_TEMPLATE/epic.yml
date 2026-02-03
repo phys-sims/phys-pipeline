@@ -65,11 +65,11 @@ body:
         - [ ] #<issue>
         ### Tasks
         - [ ] #<issue>
-        ### Physics tests (asymptote/empirical)
+        ### Tests
         - [ ] #<issue>
         ### Benchmarks
         - [ ] #<issue>
-        ### Docs/Examples
+        ### Chores
         - [ ] #<issue>
 
   - type: textarea

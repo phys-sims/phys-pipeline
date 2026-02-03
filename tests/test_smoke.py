@@ -1,4 +1,3 @@
-# tests/test_smoke.py
 import numpy as np
 
 from phys_pipeline.pipeline import SequentialPipeline
