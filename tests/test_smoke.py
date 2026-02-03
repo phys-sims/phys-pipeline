@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from phys_pipeline.pipeline import SequentialPipeline
 from phys_pipeline.policy import PolicyBag
@@ -79,6 +80,7 @@ class FitStage(PipelineStage[SimpleState, FitCfg]):
 
 
 # ---- the test ----
+@pytest.mark.slow
 def test_pipeline_runs(run_pipeline):  # uses the fixture from conftest.py
     st0 = SimpleState(payload=None)
     pipe = SequentialPipeline(
