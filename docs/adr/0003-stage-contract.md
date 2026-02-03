@@ -1,24 +1,23 @@
-# ADR-0003: Stage contract and StageResult emissions
+**Title:** Stage contract and StageResult emissions
+**ADR ID:** 0003
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: src/phys_pipeline/types.py, src/phys_pipeline/accumulator.py
-- Tags: api, data-model
+**Context:** Stages are the core abstraction for simulations. To enable caching, provenance, and testability, every stage must behave as a pure transform and emit outputs in a consistent structure.
 
-## Context
-Stages are the core abstraction. The repo assumes purity and a structured output via `StageResult`.
+**Options:**
+- **A:** Enforce a strict `StageResult` schema with explicit `state`, `metrics`, `artifacts`, and `provenance`.
+- **B:** Allow stages to return arbitrary objects and infer structure downstream.
 
-## Decision
-- `PipelineStage.process` is a pure transform with no global side effects.
-- `process` accepts an optional `policy` argument for run-wide overrides.
-- Stage outputs are in `StageResult` with:
-  - `state` for pipeline flow
-  - `metrics` for scalar results
-  - `artifacts` for heavier outputs
-  - `provenance` for hashing and audit
+**Decision:** Choose **A** to make data flow explicit, keep cache keys stable, and simplify testing/aggregation.
 
-## Consequences
-- Metrics must be scalar; arrays go to `state.meta` or `artifacts`.
-- Contract violations raise `StageContractError`.
+**Consequences:**
+- `PipelineStage.process` must be deterministic and side-effect free.
+- Metrics are scalar; large data belongs in `state` or `artifacts`.
+- Contract violations raise `StageContractError` (see ADR-0010).
+
+**References:**
+- `src/phys_pipeline/types.py`
+- `src/phys_pipeline/accumulator.py`
+
+---

@@ -1,18 +1,22 @@
-# ADR-0012: Testing strategy for physics and engineering validation
+**Title:** Testing strategy for physics and engineering validation
+**ADR ID:** 0012
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: tests/test_smoke.py, .github/ISSUE_TEMPLATE/test.yml
-- Tags: testing, validation
+**Context:** Physics pipelines require both software correctness and scientific validity. Tests must cover local behavior, integration, and reference-validated outcomes.
 
-## Decision
-Adopt a 3-tier test strategy:
-- Unit tests for stage behavior
-- Integration tests for pipelines
-- Physics validation tests tied to references or tolerances
+**Options:**
+- **A:** Three-tier strategy: unit tests, pipeline integration tests, physics validation tests.
+- **B:** Only unit tests and ad-hoc notebooks.
 
-## Consequences
-- Clear expectation for test coverage and artifacts
-- Aligns with issue templates and ADRs
+**Decision:** Choose **A** to keep correctness and scientific validity visible in CI.
+
+**Consequences:**
+- New stages should ship with unit tests.
+- Reference/physics tests may run in a separate CI job due to runtime costs.
+
+**References:**
+- `tests/test_smoke.py`
+- `docs/issue-templates-guide.md`
+
+---

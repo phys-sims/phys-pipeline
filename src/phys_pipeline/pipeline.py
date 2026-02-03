@@ -11,7 +11,16 @@ from .types import PipelineStage, StageConfig, StageResult, State
 
 
 class SequentialPipeline:
-    """Validates and executes stages in order; merges emissions via accumulator."""
+    """Validate and execute stages in order.
+
+    This is the default runtime for phys-pipeline. It runs each stage
+    sequentially, aggregates metrics/artifacts/provenance via the accumulator,
+    and returns a final ``StageResult`` with the last state and all emissions.
+
+    Example:
+        pipeline = SequentialPipeline([MyStage(MyConfig())], name="demo")
+        result = pipeline.run(SimpleState(payload=1))
+    """
 
     def __init__(
         self,
@@ -35,6 +44,18 @@ class SequentialPipeline:
         recorder: ArtifactRecorder | None = None,
         policy: PolicyLike | None = None,
     ) -> StageResult:
+        """Run the pipeline and return the final ``StageResult``.
+
+        Args:
+            state: Initial state passed to the first stage.
+            record_artifacts: Enable artifact recording via an ``ArtifactRecorder``.
+            recorder: Recorder instance used when ``record_artifacts`` is True.
+            policy: Optional run-wide overrides passed into each stage.
+
+        Returns:
+            ``StageResult`` containing the final state, aggregated metrics,
+            artifacts (if recorded), and provenance.
+        """
         run_policy = as_policy(policy) if policy is not None else self.policy
         policy_hash = hash_policy(run_policy) if run_policy is not None else None
         res = StageResult(state=state)
@@ -80,7 +101,12 @@ class SequentialPipeline:
 
 @dataclass
 class PipelineStageWrapper(PipelineStage[State, StageConfig]):
-    """Wrap a sub-pipeline so it behaves like a stage (pipeline-as-stage)."""
+    """Wrap a sub-pipeline so it behaves like a stage (pipeline-as-stage).
+
+    This is a composition helper for nested pipelines without requiring DAG
+    scheduling. The wrapped pipeline is executed whenever the wrapper stage
+    is processed.
+    """
 
     pipeline: SequentialPipeline
 

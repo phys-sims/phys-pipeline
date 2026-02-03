@@ -1,23 +1,23 @@
-# ADR-0004: State hashing and cache key composition
+**Title:** State hashing and cache key composition
+**ADR ID:** 0004
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: src/phys_pipeline/types.py, src/phys_pipeline/hashing.py
-- Tags: caching, reproducibility
+**Context:** Reproducible simulations need stable cache keys across runs and environments. Keys must capture the state, configuration, and policy inputs that influence outputs.
 
-## Context
-Caching requires stable keys across runs and environments.
+**Options:**
+- **A:** Cache key = state hash + config hash + stage version + policy hash.
+- **B:** Cache key = state hash only; rely on manual invalidation.
 
-## Decision
-Cache keys combine:
-- `State.hashable_repr()`
-- `StageConfig` hash via `hash_model`
-- Stage version label if provided
-- Policy hash when a run-wide policy is supplied
+**Decision:** Choose **A** to minimize false hits and make invalidation explicit.
 
-## Consequences
-- Users must implement `hashable_repr` for custom state
-- Configs are frozen to ensure stable hashes
-- Cache invalidates when policy changes
+**Consequences:**
+- Custom state types must implement `hashable_repr`.
+- Configs are frozen to keep hashes stable.
+- Policy changes automatically invalidate cache entries.
+
+**References:**
+- `src/phys_pipeline/types.py`
+- `src/phys_pipeline/hashing.py`
+
+---

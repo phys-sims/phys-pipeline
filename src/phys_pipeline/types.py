@@ -21,16 +21,18 @@ C = TypeVar("C", bound="StageConfig")
 
 
 class PipelineStage(ABC, Generic[S, C]):
-    """
-    PipelineStage is an abstract process or "stage" in a simulation pipeline
+    """Abstract process or "stage" in a simulation pipeline.
 
-    Input:
-        StageConfig: holds parameters to design the stage
-        State: the object the stage operates on and passes to next stage in the pipeline
+    Implementations should be deterministic and side-effect free so that
+    caching and provenance are reliable.
+
+    Inputs:
+        - ``StageConfig``: typed configuration for the stage.
+        - ``State``: application payload passed through the pipeline.
+        - ``policy``: optional run-wide overrides (see ``PolicyBag``).
+
     Output:
-        StageResult: holds outputs of the stage
-    Optional:
-        policy: run-wide overrides passed by the pipeline
+        - ``StageResult`` containing the updated state plus metrics/artifacts.
     """
 
     cfg: C
@@ -40,7 +42,7 @@ class PipelineStage(ABC, Generic[S, C]):
 
     @abstractmethod
     def process(self, state: S, *, policy: PolicyBag | None = None) -> StageResult:
-        """Pure Transform: no global side effects, deterministic"""  # Safe parallelism and caching
+        """Pure transform: no global side effects, deterministic."""
         ...
 
     # Optional methods to aid scheduler
@@ -55,11 +57,10 @@ class PipelineStage(ABC, Generic[S, C]):
 
 
 class StageConfig(BaseModel):
-    """
-    StageConfig configures stages in the pipeline
+    """Typed, immutable configuration for a stage.
 
-    The subclass specifies typed parameters to do such
-
+    Subclasses should define the stage parameters, which remain frozen to
+    ensure stable hashing and reproducibility.
     """
 
     model_config = {"arbitrary_types_allowed": True, "frozen": True}
@@ -70,25 +71,13 @@ class StageConfig(BaseModel):
 
 @dataclass(slots=True)
 class StageResult:
-    """
-    StageResult contains the outputs of a stage
+    """Outputs emitted by a stage.
 
-    state:
-        The updated State obj that is passed to the next Stage in the pipeline
-        Ex: an updated ray vector - the output of an optic "stage" in raytracing
-
-    metrics:
-        Cheap outputs for post-pipeline math or optimization
-        Ex: GDD, energy loss
-
-    artifacts:
-        Expensive outputs for debugging or logging
-        Ex: plots, intermediate step traces
-
-    provenance:
-        Record of how the Stage produced StageResult - used for cache key
-        Ex: input State hash, StageConfig hash, policy hash
-
+    Attributes:
+        state: Updated state passed to the next stage (e.g., ray vectors).
+        metrics: Cheap scalar outputs for reporting or optimization.
+        artifacts: Large or diagnostic outputs (plots, traces).
+        provenance: Metadata used for caching and auditability.
     """
 
     state: State
@@ -98,13 +87,7 @@ class StageResult:
 
 
 class State(ABC):
-    """
-    State is an application specific payload that passes through the pipeline
-
-    Example:
-        - A ray vector in a raytracing pipeline
-
-    """
+    """Application-specific payload that flows through the pipeline."""
 
     @abstractmethod
     def deepcopy(self) -> State: ...
@@ -131,7 +114,7 @@ def hash_small(obj: Any) -> bytes:
 
 
 class SimpleState(State):
-    """A tiny ready-to-use state suitable for many sims."""
+    """A minimal ready-to-use state suitable for many simulations."""
 
     def __init__(self, payload: Any = None, meta: dict[str, Any] | None = None):
         self.payload = payload
@@ -159,6 +142,7 @@ class SimpleState(State):
 
 # DAG node
 class NodeSpec:
+    """DAG node specification used by the future builder/scheduler."""
     id: str
     deps: list[str]  # dependencies
     op_name: str  # operation name
