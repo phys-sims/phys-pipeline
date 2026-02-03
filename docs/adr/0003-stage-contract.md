@@ -12,6 +12,7 @@ Stages are the core abstraction. The repo assumes purity and a structured output
 
 ## Decision
 - `PipelineStage.process` is a pure transform with no global side effects.
+- `process` accepts an optional `policy` argument for run-wide overrides.
 - Stage outputs are in `StageResult` with:
   - `state` for pipeline flow
   - `metrics` for scalar results

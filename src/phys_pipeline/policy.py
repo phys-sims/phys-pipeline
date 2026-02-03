@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterator, Mapping
-from typing import Any
+from typing import Any, TypeAlias
 
 
 class PolicyBag(Mapping[str, Any]):
@@ -21,3 +21,14 @@ class PolicyBag(Mapping[str, Any]):
 
     def get(self, k: str, default: Any = None) -> Any:
         return self._d.get(k, default)
+
+
+PolicyLike: TypeAlias = Mapping[str, Any] | PolicyBag
+
+
+def as_policy(policy: PolicyLike | None) -> PolicyBag | None:
+    if policy is None:
+        return None
+    if isinstance(policy, PolicyBag):
+        return policy
+    return PolicyBag(dict(policy))
