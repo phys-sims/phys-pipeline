@@ -26,6 +26,11 @@ This file applies to the entire repository unless a more specific `AGENTS.md` is
   python scripts/adr_tools.py reindex
   ```
 
+## Contribution expectations
+- Keep iterating on changes until CI is green. If CI fails, fix the failures and update the branch.
+- Add or update tests for any code you change (even if not explicitly requested).
+- Update documentation whenever code changes affect existing docs or usage.
+
 ## Environment setup (required)
 This repo uses a `src/` layout. Always install in editable mode with dev extras before running any checks:
 ```bash
@@ -39,6 +44,9 @@ CI runs these checks; mirror them when feasible:
 - Typecheck: `mypy`
 - Fast tests: `pytest -q -m "not slow"`
 
+## Pull request conventions
+- Title format: `[phys-pipeline] <Title>`.
+
 ## Documentation updates
 - Update README/docs/ADR references when public APIs or behavior change.
 - Keep `docs/adr/INDEX.md` in sync with ADR additions/removals.
@@ -49,3 +57,8 @@ If this repo is embedded or wrapped inside another repository, add an `AGENTS.md
 - Any additional build/test commands specific to the wrapper.
 - Integration constraints (e.g., supported Python versions, extra CI steps).
 You generally do **not** need a separate `AGENTS.md` inside this repo unless wrapper‑specific instructions differ from the base repo or apply to only a subdirectory.
+
+## Suggested additions for better agent usage
+- Document how to run the full CI suite locally, including any optional slow tests.
+- Add a short “repo map” section pointing to key entry points and common workflows.
+- Capture any environment variables or secrets required for integration tests.
