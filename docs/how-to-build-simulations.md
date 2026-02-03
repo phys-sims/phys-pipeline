@@ -33,6 +33,7 @@ You can also use `SimpleState` from `phys_pipeline.types` for quick starts.
 Stages are pure transforms from state to state.
 
 ```python
+from phys_pipeline.policy import PolicyBag
 from phys_pipeline.types import PipelineStage, StageConfig, StageResult, SimpleState
 
 class FreqCfg(StageConfig):
@@ -41,7 +42,7 @@ class FreqCfg(StageConfig):
     span: float
 
 class FreqStage(PipelineStage[SimpleState, FreqCfg]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         import numpy as np
         w = self.cfg.center + np.linspace(-self.cfg.span, self.cfg.span, self.cfg.N)
         st = state.deepcopy()
@@ -63,7 +64,32 @@ out = pipe.run(SimpleState(payload=None))
 print(out.metrics)
 ```
 
-## 5. Emit metrics and artifacts
+## 5. Optional policy overrides
+Use a `PolicyBag` to provide run-wide overrides without rebuilding the pipeline.
+Stages receive an optional `policy` argument on `process` and can ignore it when unused.
+
+```python
+from phys_pipeline.policy import PolicyBag
+
+class FreqStage(PipelineStage[SimpleState, FreqCfg]):
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
+        import numpy as np
+        N = int(policy.get("freq.N", self.cfg.N)) if policy else self.cfg.N
+        w = self.cfg.center + np.linspace(-self.cfg.span, self.cfg.span, N)
+        st = state.deepcopy()
+        st.meta["omega"] = w
+        return StageResult(state=st)
+
+policy = PolicyBag({"freq.N": 4096})
+out = pipe.run(SimpleState(payload=None), policy=policy)
+print(out.provenance["policy_hash"])  # useful for cache keys
+
+# Or set it once on the pipeline:
+pipe.set_policy(policy)
+out = pipe.run(SimpleState(payload=None))
+```
+
+## 6. Emit metrics and artifacts
 Metrics must be scalar. Artifacts can be plots or heavier blobs.
 
 ```python
@@ -71,7 +97,7 @@ class FitCfg(StageConfig):
     degree: int = 2
 
 class FitStage(PipelineStage[SimpleState, FitCfg]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         import numpy as np
         w = state.meta["omega"]
         coefs = np.polyfit(w - w.mean(), w, deg=self.cfg.degree)
@@ -91,7 +117,7 @@ class FitStage(PipelineStage[SimpleState, FitCfg]):
         )
 ```
 
-## 6. Save artifacts
+## 7. Save artifacts
 Use the artifact recorder to save plots or blobs.
 
 ```python
@@ -102,6 +128,6 @@ rec = ArtifactRecorder(Path("artifacts"))
 out = pipe.run(SimpleState(None), record_artifacts=True, recorder=rec)
 ```
 
-## 7. Testing and validation
+## 8. Testing and validation
 See `tests/test_smoke.py` for an end-to-end example pipeline with metrics
 and artifact recording.

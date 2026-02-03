@@ -1,5 +1,7 @@
 import hashlib
 import json
+from collections.abc import Mapping
+from typing import Any
 
 import numpy as np
 from pydantic import BaseModel
@@ -13,6 +15,10 @@ def stable_json(obj: dict) -> bytes:
 
 def hash_model(model: BaseModel) -> str:
     return hashlib.sha256(stable_json(model.model_dump())).hexdigest()
+
+
+def hash_policy(policy: Mapping[str, Any]) -> str:
+    return hashlib.sha256(stable_json(dict(policy))).hexdigest()
 
 
 def hash_ndarray(a: np.ndarray) -> bytes:

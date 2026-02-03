@@ -1,6 +1,7 @@
 import numpy as np
 
 from phys_pipeline.pipeline import SequentialPipeline
+from phys_pipeline.policy import PolicyBag
 from phys_pipeline.types import PipelineStage, SimpleState, StageConfig, StageResult
 
 
@@ -12,7 +13,7 @@ class FreqCfg(StageConfig):
 
 
 class FreqStage(PipelineStage[SimpleState, FreqCfg]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         w = self.cfg.center + np.linspace(-self.cfg.span, self.cfg.span, self.cfg.N)
         st = state.deepcopy()
         st.meta["omega"] = w
@@ -24,7 +25,7 @@ class FragCfg(StageConfig):
 
 
 class FragStage(PipelineStage[SimpleState, FragCfg]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         w = state.meta["omega"]
         phi = self.cfg.a * (w - w.mean()) ** 2
         st = state.deepcopy()
@@ -33,7 +34,7 @@ class FragStage(PipelineStage[SimpleState, FragCfg]):
 
 
 class SumStage(PipelineStage[SimpleState, StageConfig]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         st = state.deepcopy()
         st.meta["phi_total"] = st.meta["phase/G1"]
         return StageResult(state=st)
@@ -44,7 +45,7 @@ class FitCfg(StageConfig):
 
 
 class FitStage(PipelineStage[SimpleState, FitCfg]):
-    def process(self, state: SimpleState) -> StageResult:
+    def process(self, state: SimpleState, *, policy: PolicyBag | None = None) -> StageResult:
         import numpy as np
 
         w = state.meta["omega"]

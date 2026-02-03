@@ -15,7 +15,9 @@ Cache keys combine:
 - `State.hashable_repr()`
 - `StageConfig` hash via `hash_model`
 - Stage version label if provided
+- Policy hash when a run-wide policy is supplied
 
 ## Consequences
 - Users must implement `hashable_repr` for custom state
 - Configs are frozen to ensure stable hashes
+- Cache invalidates when policy changes

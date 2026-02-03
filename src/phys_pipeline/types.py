@@ -10,6 +10,8 @@ from typing import Any, Generic, TypeVar
 import numpy as np
 from pydantic import BaseModel, Field
 
+from .policy import PolicyBag
+
 #                                                                Data types
 
 # --- PipelineStage ---
@@ -27,6 +29,8 @@ class PipelineStage(ABC, Generic[S, C]):
         State: the object the stage operates on and passes to next stage in the pipeline
     Output:
         StageResult: holds outputs of the stage
+    Optional:
+        policy: run-wide overrides passed by the pipeline
     """
 
     cfg: C
@@ -35,7 +39,7 @@ class PipelineStage(ABC, Generic[S, C]):
         self.cfg = cfg
 
     @abstractmethod
-    def process(self, state: S) -> StageResult:
+    def process(self, state: S, *, policy: PolicyBag | None = None) -> StageResult:
         """Pure Transform: no global side effects, deterministic"""  # Safe parallelism and caching
         ...
 
@@ -83,7 +87,7 @@ class StageResult:
 
     provenance:
         Record of how the Stage produced StageResult - used for cache key
-        Ex: input State hash, StageConfig hash
+        Ex: input State hash, StageConfig hash, policy hash
 
     """
 

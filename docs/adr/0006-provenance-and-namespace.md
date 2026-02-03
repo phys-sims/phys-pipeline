@@ -9,7 +9,7 @@
 
 ## Decision
 - Metrics and artifacts are namespaced by pipeline and stage.
-- Provenance includes stage, version, config hash, and timing.
+- Provenance includes stage, version, config hash, timing, and policy hash (when provided).
 
 ## Consequences
 - Outputs are readable and comparable across runs
