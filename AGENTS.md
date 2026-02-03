@@ -43,6 +43,19 @@ CI runs these checks; mirror them when feasible:
 - Lint/hooks: `pre-commit run --all-files --show-diff-on-failure`
 - Typecheck: `mypy`
 - Fast tests: `pytest -q -m "not slow"`
+- Slow tests (nightly): `pytest -q -m "slow"`
+
+## Repo map
+- Pipeline orchestration: `src/phys_pipeline/pipeline.py`
+- Core types/contracts: `src/phys_pipeline/types.py`
+- Caching + hashing: `src/phys_pipeline/cache.py`, `src/phys_pipeline/hashing.py`
+- Artifact recording: `src/phys_pipeline/record.py`
+- Error taxonomy: `src/phys_pipeline/errors.py`
+- Tests: `tests/`
+
+## Environment variables & secrets
+- No repository-scoped secrets are required for local unit tests.
+- If you add integration tests that require secrets, document them here and gate the tests accordingly.
 
 ## Pull request conventions
 - Title format: `[phys-pipeline] <Title>`.
@@ -50,15 +63,3 @@ CI runs these checks; mirror them when feasible:
 ## Documentation updates
 - Update README/docs/ADR references when public APIs or behavior change.
 - Keep `docs/adr/INDEX.md` in sync with ADR additions/removals.
-
-## Notes for wrapper repositories
-If this repo is embedded or wrapped inside another repository, add an `AGENTS.md` in the wrapper’s root to describe:
-- How the wrapper consumes or extends `phys-pipeline` (submodule, vendored copy, dependency).
-- Any additional build/test commands specific to the wrapper.
-- Integration constraints (e.g., supported Python versions, extra CI steps).
-You generally do **not** need a separate `AGENTS.md` inside this repo unless wrapper‑specific instructions differ from the base repo or apply to only a subdirectory.
-
-## Suggested additions for better agent usage
-- Document how to run the full CI suite locally, including any optional slow tests.
-- Add a short “repo map” section pointing to key entry points and common workflows.
-- Capture any environment variables or secrets required for integration tests.
