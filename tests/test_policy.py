@@ -30,3 +30,36 @@ def test_policy_passed_and_hashed():
     assert out.state.meta["N"] == 8
     assert out.provenance["policy_hash"] == hash_policy(policy)
     assert out.provenance["stages"][0]["policy_hash"] == out.provenance["policy_hash"]
+
+
+def test_default_policy_used_when_run_policy_missing():
+    st0 = SimpleState(payload=None)
+    policy = PolicyBag({"sampling.N": 10})
+    pipe = SequentialPipeline(
+        [PolicyStage(PolicyCfg(name="policy", N=4))],
+        name="demo",
+        policy=policy,
+    )
+
+    out = pipe.run(st0)
+
+    assert out.state.meta["N"] == 10
+    assert out.provenance["policy_hash"] == hash_policy(policy)
+    assert out.provenance["stages"][0]["policy_hash"] == out.provenance["policy_hash"]
+
+
+def test_run_policy_overrides_default_policy():
+    st0 = SimpleState(payload=None)
+    default_policy = PolicyBag({"sampling.N": 10})
+    run_policy = PolicyBag({"sampling.N": 6})
+    pipe = SequentialPipeline(
+        [PolicyStage(PolicyCfg(name="policy", N=4))],
+        name="demo",
+        policy=default_policy,
+    )
+
+    out = pipe.run(st0, policy=run_policy)
+
+    assert out.state.meta["N"] == 6
+    assert out.provenance["policy_hash"] == hash_policy(run_policy)
+    assert out.provenance["policy_hash"] != hash_policy(default_policy)
