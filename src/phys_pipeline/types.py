@@ -64,7 +64,7 @@ class StageConfig(BaseModel):
     tags: dict[str, Any] = Field(default_factory=dict)
 
 
-@dataclass
+@dataclass(slots=True)
 class StageResult:
     """
     StageResult contains the outputs of a stage

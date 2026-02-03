@@ -1,4 +1,3 @@
-# conftest.py  (project root)
 from pathlib import Path
 
 import pytest
@@ -32,6 +31,3 @@ def run_pipeline(artifact_recorder):
         )
 
     return _run
-
-
-# comment to test CI
