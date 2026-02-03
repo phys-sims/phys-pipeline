@@ -1,16 +1,23 @@
-# ADR-0013: ADR process and indexing
+**Title:** ADR process and indexing
+**ADR ID:** 0013
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: infra/docs
-- Related: scripts/adr_tools.py
-- Tags: docs, process
+**Context:** ADRs must remain consistent and discoverable as the project grows. We need a predictable template and index update workflow.
 
-## Decision
-Create ADRs via `python scripts/adr_tools.py new "Title" --type full`
-and reindex with `python scripts/adr_tools.py reindex`.
+**Options:**
+- **A:** Use the provided ADR templates and `scripts/adr_tools.py` for creation and indexing.
+- **B:** Allow free-form ADRs and manual index edits.
 
-## Consequences
-- Consistent naming and indexing
-- Faster doc hygiene
+**Decision:** Choose **A** to keep documentation consistent and searchable.
+
+**Consequences:**
+- New ADRs should be created via `scripts/adr_tools.py`.
+- The index must be updated whenever ADRs are added or removed.
+
+**References:**
+- `scripts/adr_tools.py`
+- `docs/adr/_template-full.md`
+- `docs/adr/_template-lite.md`
+
+---

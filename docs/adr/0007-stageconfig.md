@@ -1,16 +1,21 @@
-# ADR-0007: StageConfig uses frozen Pydantic models
+**Title:** StageConfig uses frozen Pydantic models
+**ADR ID:** 0007
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: src/phys_pipeline/types.py
-- Tags: api, config
+**Context:** Stages need strongly typed configuration objects that are immutable and hashable for caching. We also need to allow scientific data types (arrays, callables) in configs.
 
-## Decision
-Use frozen `BaseModel` configs with `arbitrary_types_allowed` to enable
-stable hashing and strong typing.
+**Options:**
+- **A:** Use frozen `pydantic.BaseModel` with `arbitrary_types_allowed`.
+- **B:** Use mutable dataclasses and rely on manual hashing.
 
-## Consequences
-- Configs are immutable and hashable
-- Arbitrary types (arrays, callables) are allowed by design
+**Decision:** Choose **A** to get validation plus stable hashing by default.
+
+**Consequences:**
+- Configs are immutable, ensuring reproducible runs.
+- Non-JSON types can still be embedded when needed.
+
+**References:**
+- `src/phys_pipeline/types.py`
+
+---

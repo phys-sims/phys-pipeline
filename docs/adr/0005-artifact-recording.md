@@ -1,17 +1,23 @@
-# ADR-0005: Artifact recording and storage formats
+**Title:** Artifact recording and storage formats
+**ADR ID:** 0005
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: src/phys_pipeline/record.py, src/phys_pipeline/accumulator.py
-- Tags: artifacts, logging
+**Context:** Some simulation outputs are large (plots, intermediate arrays) and should not be stored in memory by default. We need an opt-in recording system that preserves artifacts without bloating results.
 
-## Decision
-- Artifacts are optional and recorded only when requested.
-- Figures are saved as `.png`, blobs as `.json`.
-- Large artifacts are previewed in results to avoid memory blowups.
+**Options:**
+- **A:** Record artifacts only when explicitly requested, persist to disk with lightweight previews in results.
+- **B:** Always keep artifacts in-memory for convenience.
 
-## Consequences
-- Pipeline results remain light by default
-- Artifact paths are stored in output when recording is enabled
+**Decision:** Choose **A** to keep the default pipeline results lightweight and predictable.
+
+**Consequences:**
+- Recording must be enabled via pipeline run options.
+- Results store artifact references/paths when recording is on.
+- Storage formats are standardized for interoperability (e.g., PNG, JSON).
+
+**References:**
+- `src/phys_pipeline/record.py`
+- `src/phys_pipeline/accumulator.py`
+
+---

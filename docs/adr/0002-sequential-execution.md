@@ -1,24 +1,24 @@
-# ADR-0002: Sequential pipeline execution model
+**Title:** Sequential pipeline execution model
+**ADR ID:** 0002
+**Status:** Proposed
+**Date:** 2026-02-03
 
-- Status: Proposed
-- Date: 2026-02-03
-- Deciders: @tbd
-- Area: phys-pipeline
-- Related: src/phys_pipeline/pipeline.py
-- Tags: execution, runtime, design
+**Context:** The runtime executes stages in order today. A DAG runner is hinted in code, but there is no scheduler or executor yet. We need a clear, deterministic execution model while the DAG work is designed.
 
-## Context
-The current runtime executes stages in order via `SequentialPipeline`. A DAG runner is hinted in `types.py` but not implemented.
+**Options:**
+- **A:** Sequential execution only, with pipeline composition for reuse.
+- **B:** Implement full DAG execution immediately.
+- **C:** Support both models with a pluggable scheduler abstraction from day one.
 
-## Options Considered
-Option A: Sequential execution only, with optional pipeline composition
-Option B: DAG execution now
-Option C: Support both with a pluggable scheduler
+**Decision:** Choose **A** now to ship a predictable baseline, and leave DAG scheduling for dedicated ADRs.
 
-## Decision
-Choose Option A now. Keep DAG runner as a future ADR.
+**Consequences:**
+- Straight-line execution is easy to reason about and test.
+- Composition relies on pipeline-as-stage rather than parallel scheduling.
+- Future DAG work must preserve sequential semantics for debugging.
 
-## Consequences
-- Clear, deterministic execution model today
-- DAG design remains open
-- Pipeline-as-stage allows composition without DAG scheduling
+**References:**
+- `src/phys_pipeline/pipeline.py`
+- ADR-0008 (pipeline-as-stage)
+
+---
