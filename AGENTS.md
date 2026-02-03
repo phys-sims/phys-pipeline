@@ -26,6 +26,13 @@ This file applies to the entire repository unless a more specific `AGENTS.md` is
   python scripts/adr_tools.py reindex
   ```
 
+## Environment setup (required)
+This repo uses a `src/` layout. Always install in editable mode with dev extras before running any checks:
+```bash
+python -m pip install -U pip
+python -m pip install -e ".[dev]"
+```
+
 ## Testing & checks
 CI runs these checks; mirror them when feasible:
 - Lint/hooks: `pre-commit run --all-files --show-diff-on-failure`
