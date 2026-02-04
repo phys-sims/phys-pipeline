@@ -41,7 +41,7 @@ class PipelineStage(ABC, Generic[S_contra, C_co]):
         self.cfg = cfg
 
     @abstractmethod
-    def process(self, state: S_contra, *, policy: PolicyBag | None = None) -> StageResult:
+    def process(self, state: S_contra, *, policy: PolicyBag | None = None) -> StageResult[S_contra]:
         """Pure transform: no global side effects, deterministic."""
         ...
 
@@ -69,8 +69,11 @@ class StageConfig(BaseModel):
     tags: dict[str, Any] = Field(default_factory=dict)
 
 
+S = TypeVar("S", bound="State")
+
+
 @dataclass(slots=True)
-class StageResult:
+class StageResult(Generic[S]):
     """Outputs emitted by a stage.
 
     Attributes:
@@ -80,7 +83,7 @@ class StageResult:
         provenance: Metadata used for caching and auditability.
     """
 
-    state: State
+    state: S
     metrics: dict[str, float] = field(default_factory=dict)
     artifacts: dict[str, Any] = field(default_factory=dict)
     provenance: dict[str, Any] = field(default_factory=dict)
