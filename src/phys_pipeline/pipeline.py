@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import time
+from collections.abc import Sequence
 from dataclasses import dataclass
+from typing import Generic, TypeVar
 
 from .accumulator import RunAccumulator
 from .hashing import hash_model, hash_policy
@@ -9,8 +11,10 @@ from .policy import PolicyBag, PolicyLike, as_policy
 from .record import ArtifactRecorder
 from .types import PipelineStage, StageConfig, StageResult, State
 
+S = TypeVar("S", bound=State)
 
-class SequentialPipeline:
+
+class SequentialPipeline(Generic[S]):
     """Validate and execute stages in order.
 
     This is the default runtime for phys-pipeline. It runs each stage
@@ -24,12 +28,12 @@ class SequentialPipeline:
 
     def __init__(
         self,
-        stages: list[PipelineStage],
+        stages: Sequence[PipelineStage[S, StageConfig]],
         name: str | None = None,
         *,
         policy: PolicyLike | None = None,
     ):
-        self.stages = stages
+        self.stages = list(stages)
         self.name = name or ""
         self.policy = as_policy(policy)
 
@@ -100,7 +104,7 @@ class SequentialPipeline:
 
 
 @dataclass
-class PipelineStageWrapper(PipelineStage[State, StageConfig]):
+class PipelineStageWrapper(PipelineStage[S, StageConfig], Generic[S]):
     """Wrap a sub-pipeline so it behaves like a stage (pipeline-as-stage).
 
     This is a composition helper for nested pipelines without requiring DAG
@@ -108,7 +112,7 @@ class PipelineStageWrapper(PipelineStage[State, StageConfig]):
     is processed.
     """
 
-    pipeline: SequentialPipeline
+    pipeline: SequentialPipeline[S]
 
     def __init__(self, name: str, pipeline: SequentialPipeline):
         self.name = name
