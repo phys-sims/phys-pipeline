@@ -143,6 +143,7 @@ class SimpleState(State):
 # DAG node
 class NodeSpec:
     """DAG node specification used by the future builder/scheduler."""
+
     id: str
     deps: list[str]  # dependencies
     op_name: str  # operation name
