@@ -16,11 +16,11 @@ from .policy import PolicyBag
 
 # --- PipelineStage ---
 
-S = TypeVar("S", bound="State")
-C = TypeVar("C", bound="StageConfig")
+S_contra = TypeVar("S_contra", bound="State", contravariant=True)
+C_co = TypeVar("C_co", bound="StageConfig", covariant=True)
 
 
-class PipelineStage(ABC, Generic[S, C]):
+class PipelineStage(ABC, Generic[S_contra, C_co]):
     """Abstract process or "stage" in a simulation pipeline.
 
     Implementations should be deterministic and side-effect free so that
@@ -35,13 +35,13 @@ class PipelineStage(ABC, Generic[S, C]):
         - ``StageResult`` containing the updated state plus metrics/artifacts.
     """
 
-    cfg: C
+    cfg: C_co
 
-    def __init__(self, cfg: C):
+    def __init__(self, cfg: C_co):
         self.cfg = cfg
 
     @abstractmethod
-    def process(self, state: S, *, policy: PolicyBag | None = None) -> StageResult:
+    def process(self, state: S_contra, *, policy: PolicyBag | None = None) -> StageResult:
         """Pure transform: no global side effects, deterministic."""
         ...
 
