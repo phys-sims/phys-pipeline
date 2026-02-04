@@ -1,0 +1,174 @@
+name: Codex Issue Generator
+
+on:
+  workflow_dispatch:
+    inputs:
+      issue_type:
+        description: "Issue template to use"
+        type: choice
+        options:
+          - epic
+          - feature
+          - task
+          - bug
+          - benchmark
+          - spike
+          - test
+          - chore
+        required: true
+      title:
+        description: "Issue title (use the template prefix)"
+        required: true
+      context:
+        description: "Background context, links, or notes for Codex"
+        required: true
+      labels:
+        description: "Comma-separated labels to add"
+        required: false
+      assignees:
+        description: "Comma-separated GitHub usernames"
+        required: false
+      model:
+        description: "OpenAI model (defaults to codex-mini-latest)"
+        required: false
+        default: "codex-mini-latest"
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  codex-issue:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build Codex prompt
+        env:
+          ISSUE_TYPE: ${{ inputs.issue_type }}
+          ISSUE_TITLE: ${{ inputs.title }}
+          ISSUE_CONTEXT: ${{ inputs.context }}
+        run: |
+          python - <<'PY'
+          import os
+          from pathlib import Path
+
+          issue_type = os.environ["ISSUE_TYPE"]
+          issue_title = os.environ["ISSUE_TITLE"]
+          issue_context = os.environ["ISSUE_CONTEXT"]
+
+          guide = Path("docs/issue-templates-guide.md").read_text()
+          template_path = Path(".github/ISSUE_TEMPLATE") / f"{issue_type}.yml"
+          template = template_path.read_text()
+
+          prompt = f"""
+          You are a Codex agent tasked with drafting a GitHub issue for the phys-pipeline repo.
+          Follow the issue templates guide and the selected issue template exactly.
+
+          Requirements:
+          - Use the selected template fields as section headings in Markdown.
+          - Include every required field from the template.
+          - For dropdown options, choose one of the listed options.
+          - Keep content concise, actionable, and aligned to the PM tips in the guide.
+          - Do not invent milestones or links unless provided in the context.
+          - Output ONLY the issue body in Markdown (no front matter, no title).
+
+          Issue title: {issue_title}
+          Context: {issue_context}
+
+          Issue templates guide:
+          {guide}
+
+          Selected issue template ({template_path}):
+          {template}
+          """.strip()
+
+          Path("codex_issue_prompt.txt").write_text(prompt)
+          PY
+
+      - name: Generate issue body with Codex
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          CODEX_MODEL: ${{ inputs.model }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          from urllib.request import Request, urlopen
+
+          prompt = Path("codex_issue_prompt.txt").read_text()
+          model = os.environ.get("CODEX_MODEL", "codex-mini-latest")
+
+          payload = {
+              "model": model,
+              "input": [
+                  {
+                      "role": "system",
+                      "content": [
+                          {
+                              "type": "text",
+                              "text": "You are Codex, a precise and structured assistant.",
+                          }
+                      ],
+                  },
+                  {
+                      "role": "user",
+                      "content": [{"type": "text", "text": prompt}],
+                  },
+              ],
+              "max_output_tokens": 1400,
+          }
+
+          request = Request(
+              "https://api.openai.com/v1/responses",
+              data=json.dumps(payload).encode(),
+              headers={
+                  "Authorization": f"Bearer {os.environ['OPENAI_API_KEY']}",
+                  "Content-Type": "application/json",
+              },
+          )
+
+          with urlopen(request) as response:
+              data = json.load(response)
+
+          output_text = ""
+          for item in data.get("output", []):
+              if item.get("type") != "message":
+                  continue
+              for part in item.get("content", []):
+                  if part.get("type") == "output_text":
+                      output_text += part.get("text", "")
+
+          body = output_text.strip()
+          if not body:
+              raise SystemExit("Codex returned an empty issue body.")
+
+          Path("codex_issue_body.md").write_text(body)
+          PY
+
+      - name: Create GitHub issue
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ISSUE_TITLE: ${{ inputs.title }}
+          ISSUE_LABELS: ${{ inputs.labels }}
+          ISSUE_ASSIGNEES: ${{ inputs.assignees }}
+        run: |
+          set -euo pipefail
+
+          labels_args=()
+          if [ -n "${ISSUE_LABELS}" ]; then
+            labels_args+=(--label "${ISSUE_LABELS}")
+          fi
+
+          assignees_args=()
+          if [ -n "${ISSUE_ASSIGNEES}" ]; then
+            assignees_args+=(--assignee "${ISSUE_ASSIGNEES}")
+          fi
+
+          gh issue create \
+            --title "${ISSUE_TITLE}" \
+            --body-file codex_issue_body.md \
+            "${labels_args[@]}" \
+            "${assignees_args[@]}"

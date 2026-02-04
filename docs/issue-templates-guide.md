@@ -72,3 +72,17 @@ Update the index with `python scripts/adr_tools.py reindex`.
 - Track progress by linking child issues inside Epics and Features.
 - Use Spike when uncertainty is high and the output is a decision or report.
 - Use Test issues to make validation explicit and traceable.
+
+## Codex issue automation
+Use the GitHub Actions workflow `Codex Issue Generator` to draft issues from the templates.
+
+Workflow inputs:
+- `issue_type`: Select the template (`epic`, `feature`, `task`, `bug`, `benchmark`, `spike`, `test`, `chore`).
+- `title`: Provide the issue title, including any prefix from the template.
+- `context`: Supply the background, links, and constraints for Codex to follow.
+- Optional: `labels`, `assignees`, and `model`.
+
+Operational notes:
+- Configure the `OPENAI_API_KEY` repository secret so Codex can generate the body.
+- The workflow reads this guide and the chosen template to enforce required fields.
+- Keep the context aligned with PM tips to ensure consistent scope and acceptance criteria.
