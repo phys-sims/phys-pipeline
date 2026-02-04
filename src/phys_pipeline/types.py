@@ -16,15 +16,20 @@ from .policy import PolicyBag
 
 # --- PipelineStage ---
 
-S_contra = TypeVar("S_contra", bound="State", contravariant=True)
-C_co = TypeVar("C_co", bound="StageConfig", covariant=True)
+S = TypeVar("S", bound="State")
+C = TypeVar("C", bound="StageConfig")
 
 
-class PipelineStage(ABC, Generic[S_contra, C_co]):
+class PipelineStage(ABC, Generic[S, C]):
     """Abstract process or "stage" in a simulation pipeline.
 
     Implementations should be deterministic and side-effect free so that
     caching and provenance are reliable.
+
+    Notes:
+        The stage is invariant in ``S`` because the same state type flows in
+        and out of ``process``. Pipeline wrappers should use a single concrete
+        ``State`` subtype throughout a sequential pipeline.
 
     Inputs:
         - ``StageConfig``: typed configuration for the stage.
@@ -35,13 +40,13 @@ class PipelineStage(ABC, Generic[S_contra, C_co]):
         - ``StageResult`` containing the updated state plus metrics/artifacts.
     """
 
-    cfg: C_co
+    cfg: C
 
-    def __init__(self, cfg: C_co):
+    def __init__(self, cfg: C):
         self.cfg = cfg
 
     @abstractmethod
-    def process(self, state: S_contra, *, policy: PolicyBag | None = None) -> StageResult[S_contra]:
+    def process(self, state: S, *, policy: PolicyBag | None = None) -> StageResult[S]:
         """Pure transform: no global side effects, deterministic."""
         ...
 
@@ -67,9 +72,6 @@ class StageConfig(BaseModel):
     name: str = "stage cfg"
     # metadata for schedulers and test camapgins eg: "Requires GPU"
     tags: dict[str, Any] = Field(default_factory=dict)
-
-
-S = TypeVar("S", bound="State")
 
 
 @dataclass(slots=True)
