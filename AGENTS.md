@@ -45,6 +45,9 @@ CI runs these checks; mirror them when feasible:
 - Fast tests: `pytest -q -m "not slow"`
 - Slow tests (nightly): `pytest -q -m "slow"`
 
+After any code modification, always run:
+- `pre-commit run --all-files --show-diff-on-failure`
+
 ## Repo map
 - Pipeline orchestration: `src/phys_pipeline/pipeline.py`
 - Core types/contracts: `src/phys_pipeline/types.py`
