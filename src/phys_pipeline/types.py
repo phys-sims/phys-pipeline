@@ -144,10 +144,11 @@ class SimpleState(State):
 
 
 # DAG node
+@dataclass(frozen=True, slots=True)
 class NodeSpec:
     """DAG node specification used by the future builder/scheduler."""
 
     id: str
-    deps: list[str]  # dependencies
-    op_name: str  # operation name
-    version: str
+    deps: list[str] = field(default_factory=list)  # dependencies
+    op_name: str = ""  # operation name
+    version: str = ""
