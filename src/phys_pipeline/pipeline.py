@@ -3,7 +3,7 @@ from __future__ import annotations
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
 from .accumulator import RunAccumulator
 from .hashing import hash_model, hash_policy
@@ -28,7 +28,7 @@ class SequentialPipeline(Generic[S]):
 
     def __init__(
         self,
-        stages: Sequence[PipelineStage[S, StageConfig]],
+        stages: Sequence[PipelineStage[S, Any]],
         name: str | None = None,
         *,
         policy: PolicyLike | None = None,
@@ -42,12 +42,12 @@ class SequentialPipeline(Generic[S]):
 
     def run(
         self,
-        state: State,
+        state: S,
         *,
         record_artifacts: bool = False,
         recorder: ArtifactRecorder | None = None,
         policy: PolicyLike | None = None,
-    ) -> StageResult:
+    ) -> StageResult[S]:
         """Run the pipeline and return the final ``StageResult``.
 
         Args:
@@ -62,7 +62,7 @@ class SequentialPipeline(Generic[S]):
         """
         run_policy = as_policy(policy) if policy is not None else self.policy
         policy_hash = hash_policy(run_policy) if run_policy is not None else None
-        res = StageResult(state=state)
+        res: StageResult[S] = StageResult(state=state)
         acc = RunAccumulator(
             record_artifacts=record_artifacts,
             recorder=recorder,
@@ -72,7 +72,7 @@ class SequentialPipeline(Generic[S]):
             acc.provenance["policy_hash"] = policy_hash
         for s in self.stages:
             t0 = time.perf_counter()
-            out: StageResult = s.process(res.state, policy=run_policy)
+            out: StageResult[S] = s.process(res.state, policy=run_policy)
             dt = time.perf_counter() - t0
 
             # Provenance: cfg hash, version, timing
@@ -114,9 +114,10 @@ class PipelineStageWrapper(PipelineStage[S, StageConfig], Generic[S]):
 
     pipeline: SequentialPipeline[S]
 
-    def __init__(self, name: str, pipeline: SequentialPipeline):
+    def __init__(self, name: str, pipeline: SequentialPipeline[S]):
+        super().__init__(StageConfig(name=name))
         self.name = name
         self.pipeline = pipeline
 
-    def process(self, state: State, *, policy: PolicyBag | None = None) -> StageResult:
+    def process(self, state: S, *, policy: PolicyBag | None = None) -> StageResult[S]:
         return self.pipeline.run(state, policy=policy)
