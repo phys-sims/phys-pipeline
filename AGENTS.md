@@ -7,7 +7,7 @@ This file applies to the entire repository unless a more specific `AGENTS.md` is
 `phys-pipeline` provides a typed, sequential physics simulation pipeline with stages, caching, provenance, and optional artifact recording. The ADRs in `docs/adr/` capture architectural decisions; review them before making structural changes.
 
 ## Key references
-- `docs/how-to-build-simulations.md` for end‑to‑end usage.
+- `docs/how-to-build-simulations.md` for end-to-end usage.
 - `docs/issue-templates-guide.md` for issue/PR/ADR conventions.
 - `docs/adr/` for architecture decisions and templates.
 - `.github/pull_request_template.md` for PR content.
@@ -31,22 +31,67 @@ This file applies to the entire repository unless a more specific `AGENTS.md` is
 - Add or update tests for any code you change (even if not explicitly requested).
 - Update documentation whenever code changes affect existing docs or usage.
 
-## Environment setup (required)
-This repo uses a `src/` layout. Always install in editable mode with dev extras before running any checks:
+## Environment setup
+
+### Important: offline agent runs (Codex)
+Some environments (e.g. Codex agent/test phase) run with restricted or no outbound network access.
+That means:
+- `pre-commit` may fail if it needs to fetch hooks.
+- `pip install -e ...` may fail if build deps need to be downloaded.
+
+To keep checks reliable, prefer an **offline-safe** workflow during agent runs.
+
+### Local development (recommended)
+This repo uses a `src/` layout. Install in editable mode with dev extras:
 ```bash
-python -m pip install -U pip
+python -m pip install -U pip setuptools wheel
 python -m pip install -e ".[dev]"
 ```
 
-## Testing & checks
-CI runs these checks; mirror them when feasible:
-- Lint/hooks: `pre-commit run --all-files --show-diff-on-failure`
-- Typecheck: `mypy`
-- Fast tests: `pytest -q -m "not slow"`
-- Slow tests (nightly): `pytest -q -m "slow"`
+### Codex / CI setup phase (online)
+If you have an environment setup step that runs with internet access, do downloads there:
+```bash
+python -m pip install -U pip setuptools wheel
+python -m pip install -e ".[dev]" --no-build-isolation
+pre-commit install-hooks
+```
 
-After any code modification, always run:
-- `pre-commit run --all-files --show-diff-on-failure`
+### Offline-safe fallback (when editable install cannot download build deps)
+If editable install fails due to network/proxy restrictions, fall back to installing deps and forcing
+imports from `src/`:
+```bash
+python -m pip install -U pip setuptools wheel
+python -m pip install ".[dev]"
+export PYTHONPATH="$PWD/src:$PYTHONPATH"
+```
+
+## Testing & checks
+
+### Offline-safe checks (preferred for Codex agent runs)
+Run these commands instead of `pre-commit` when network access is restricted:
+```bash
+python -m ruff check .
+python -m black --check .
+python -m mypy
+python -m pytest -q -m "not slow"
+```
+
+### Full local checks (includes pre-commit)
+If hooks are already installed/cached (normal local dev), you can run:
+```bash
+pre-commit run --all-files --show-diff-on-failure
+python -m mypy
+python -m pytest -q -m "not slow"
+```
+
+### Slow tests (nightly / explicit)
+```bash
+python -m pytest -q -m "slow"
+```
+
+### Contribution expectation
+After any code modification, always run the **offline-safe checks** at minimum. If you have
+hook access locally, also run `pre-commit`.
 
 ## Repo map
 - Pipeline orchestration: `src/phys_pipeline/pipeline.py`
