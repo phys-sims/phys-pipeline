@@ -18,3 +18,4 @@
 | [ADR-0015](docs/adr/0015-dag-scheduler.md) | 0015-dag-scheduler.md |  |  |  |  |
 | [ADR-0016](docs/adr/0016-executor-abstraction.md) | 0016-executor-abstraction.md |  |  |  |  |
 | [ADR-0017](docs/adr/0017-testing-error-taxonomy.md) | 0017-testing-error-taxonomy.md |  |  |  |  |
+| [ADR-0018](docs/adr/0018-dag-execution-semantics.md) | 0018-dag-execution-semantics.md |  |  |  |  |
