@@ -50,7 +50,7 @@ Stages are pure transforms that accept a `State` object and return a `StageResul
 
 ### Running a pipeline
 
-`SequentialPipeline` validates and executes stages in order. You can also wrap pipelines inside other pipelines using `PipelineStageWrapper` for composition (ADR-0008).
+`SequentialPipeline` validates and executes stages in order. For DAG-shaped workflows, build a `Dag` and run it with `DagPipeline` plus a scheduler such as `TopoScheduler` to deterministically traverse the DAG. You can also wrap pipelines inside other pipelines using `PipelineStageWrapper` for composition (ADR-0008).
 
 ### Artifact recording
 
@@ -67,7 +67,7 @@ Use `PolicyBag` for run-wide overrides like tolerances or instrumentation flags.
 
 ## Roadmap (DAG execution)
 
-Planned work includes a DAG builder, scheduler, and executor abstraction. See ADRs 0014–0016 for details.
+Planned work includes richer DAG builders, schedulers, and executor abstractions. See ADRs 0014–0016 for details.
 
 ## License
 

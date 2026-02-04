@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import copy
 import hashlib
+import heapq
 import json
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -148,3 +149,44 @@ class NodeSpec:
     deps: list[str]  # dependencies
     op_name: str  # operation name
     version: str
+
+
+@dataclass(slots=True)
+class Dag:
+    """Minimal DAG container for scheduling pipeline stages."""
+
+    nodes: dict[str, PipelineStage]
+    deps: dict[str, set[str]] = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        for node_id in self.nodes:
+            self.deps.setdefault(node_id, set())
+        unknown_nodes = set(self.deps) - set(self.nodes)
+        if unknown_nodes:
+            raise ValueError(f"Unknown DAG nodes in deps: {sorted(unknown_nodes)}")
+        for node_id, deps in self.deps.items():
+            missing = set(deps) - set(self.nodes)
+            if missing:
+                raise ValueError(
+                    f"Node '{node_id}' depends on missing nodes: {sorted(missing)}"
+                )
+
+    def topo_order(self) -> list[str]:
+        incoming = {node: set(self.deps.get(node, set())) for node in self.nodes}
+        outgoing = {node: set() for node in self.nodes}
+        for node, deps in incoming.items():
+            for dep in deps:
+                outgoing[dep].add(node)
+        ready = [node for node, deps in incoming.items() if not deps]
+        heapq.heapify(ready)
+        order: list[str] = []
+        while ready:
+            node = heapq.heappop(ready)
+            order.append(node)
+            for child in sorted(outgoing[node]):
+                incoming[child].remove(node)
+                if not incoming[child]:
+                    heapq.heappush(ready, child)
+        if len(order) != len(self.nodes):
+            raise ValueError("DAG has cycles or unresolved dependencies.")
+        return order
