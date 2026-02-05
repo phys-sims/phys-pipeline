@@ -4,9 +4,14 @@
 - **Status:** `Proposed | Accepted | Rejected | Superseded by ADR-#### | Deprecated`
 - **Date:** `YYYY‑MM‑DD`
 - **Deciders:** `@handles, @reviewers`
-- **Area:** `phys-pipeline | abcdef-sim | research-utils | cpa-sim | infra/docs`
+- **Area:** `phys-pipeline | abcdef-sim | research-utils | cpa-sim | ecosystem`
 - **Related:** `Issue #123, PR #456, Project item link`
 - **Tags:** `performance, api, data-model, testing, ops`
+- **Scope:** `repo | ecosystem | internal`
+- **Visibility:** `public | private`
+- **Canonical ADR:** `<org/repo>/docs/adr/ADR-####.md (or path)>`
+- **Impacted repos:** `phys-pipeline, abcdef-sim, glnse-sim, cpa-sim, research-utils, testbench`
+- **Related ecosystem ADRs:** `ECO-#### (link), ECO-#### (link)` *(if scope=repo and depends on ecosystem)*
 
 ### Context
 - **Problem statement.** Why decide now? What user/research requirement or constraint forces this?
