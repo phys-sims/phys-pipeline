@@ -1,11 +1,11 @@
 **Title:** `<concise>`
-**ADR ID:** `####‑lite`
+**ADR ID:** `<ADR-PREFIX>-<ADR-ID>`
 **Status:** `Proposed | Accepted`
-**Date:** `YYYY‑MM‑DD`
+**Date:** `<DATE>`
 
 **Scope:** `repo | ecosystem | internal`
 **Visibility:** `public | private`
-**Canonical ADR:** `<org/repo>/docs/adr/...>`
+**Canonical ADR:** `<org/repo>/docs/adr/<ADR-PREFIX>-<ADR-ID>.md (or path)>`
 
 **Context:** one paragraph on the problem & constraints.
 

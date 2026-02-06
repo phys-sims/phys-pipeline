@@ -1,7 +1,13 @@
 **Title:** Scheduler interface for DAG execution
-**ADR ID:** 0015
+**ADR ID:** ADR-0015
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0015-dag-scheduler.md
 
 **Context:** Once a DAG is defined, we need a scheduler to choose execution order, respect dependencies, and optionally enable concurrency.
 

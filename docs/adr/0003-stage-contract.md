@@ -1,7 +1,13 @@
 **Title:** Stage contract and StageResult emissions
-**ADR ID:** 0003
+**ADR ID:** ADR-0003
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0003-stage-contract.md
 
 **Context:** Stages are the core abstraction for simulations. To enable caching, provenance, and testability, every stage must behave as a pure transform and emit outputs in a consistent structure.
 

@@ -1,7 +1,13 @@
 **Title:** Metrics namespace and provenance schema
-**ADR ID:** 0006
+**ADR ID:** ADR-0006
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0006-provenance-and-namespace.md
 
 **Context:** Metrics and artifacts from multiple stages must be comparable and traceable across runs. A consistent namespace and provenance schema enables debugging and cache validation.
 

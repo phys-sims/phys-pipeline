@@ -1,7 +1,13 @@
 **Title:** Pipeline-as-stage composition
-**ADR ID:** 0008
+**ADR ID:** ADR-0008
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0008-pipeline-as-stage.md
 
 **Context:** Teams need to reuse sub-pipelines across scenarios without introducing DAG scheduling yet. Composition should remain explicit and sequential by default.
 

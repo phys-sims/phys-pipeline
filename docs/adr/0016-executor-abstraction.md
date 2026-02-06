@@ -1,7 +1,13 @@
 **Title:** Executor abstraction for running scheduled stages
-**ADR ID:** 0016
+**ADR ID:** ADR-0016
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0016-executor-abstraction.md
 
 **Context:** The scheduler decides *what* to run, but we still need an execution layer that runs stage computations, captures timings, and handles failures consistently.
 

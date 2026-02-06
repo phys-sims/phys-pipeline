@@ -1,7 +1,13 @@
 **Title:** Sequential pipeline execution model
-**ADR ID:** 0002
+**ADR ID:** ADR-0002
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0002-sequential-execution.md
 
 **Context:** The runtime executes stages in order today. A DAG runner is hinted in code, but there is no scheduler or executor yet. We need a clear, deterministic execution model while the DAG work is designed.
 
