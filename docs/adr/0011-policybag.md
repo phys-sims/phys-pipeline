@@ -1,7 +1,13 @@
 **Title:** PolicyBag for run-wide overrides
-**ADR ID:** 0011
+**ADR ID:** ADR-0011
 **Status:** Accepted
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0011-policybag.md
 
 **Context:** Simulations need optional run-level overrides (e.g., tolerances, instrumentation flags) without hard-coding globals or mutating stage configs.
 

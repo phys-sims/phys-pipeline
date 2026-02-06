@@ -1,7 +1,13 @@
 **Title:** Stage contract error policy
-**ADR ID:** 0010
+**ADR ID:** ADR-0010
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0010-stage-errors.md
 
 **Context:** Contract violations should be surfaced early so simulation authors can fix their stages before running expensive experiments.
 

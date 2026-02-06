@@ -1,12 +1,15 @@
 **Title:** Define DAG execution semantics and dependency types
 
-- **ADR ID:** `0018`
+- **ADR ID:** `ADR-0018`
 - **Status:** `Proposed`
 - **Date:** `2026-02-04`
 - **Deciders:** `@phys-pipeline-maintainers`
 - **Area:** `phys-pipeline`
 - **Related:** `ADR-0002, ADR-0003, ADR-0004, ADR-0008, ADR-0014, ADR-0015`
 - **Tags:** `execution, dag, caching, contracts`
+- **Scope:** `repo`
+- **Visibility:** `public`
+- **Canonical ADR:** `phys-pipeline/docs/adr/0018-dag-execution-semantics.md`
 
 ### Context
 - **Problem statement.** DAG execution is planned (ADR-0014/0015), but we need a concise, explicit spec for node/dependency semantics, determinism, memoization, and compatibility with the sequential pipeline baseline (ADR-0002).

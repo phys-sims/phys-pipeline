@@ -1,7 +1,13 @@
 **Title:** DAG builder and validation for pipeline graphs
-**ADR ID:** 0014
+**ADR ID:** ADR-0014
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0014-dag-builder.md
 
 **Context:** Sequential pipelines are useful, but real simulations often branch, join, and share intermediate outputs. We need a DAG representation with validation (cycle detection, missing dependencies) before executing.
 

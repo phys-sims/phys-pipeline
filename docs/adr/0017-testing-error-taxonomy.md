@@ -1,7 +1,13 @@
 **Title:** Testing error taxonomy for simulations
-**ADR ID:** 0017
+**ADR ID:** ADR-0017
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0017-testing-error-taxonomy.md
 
 **Context:** Tests need to distinguish between contract violations, runtime failures, and scientific validation failures. Without a taxonomy, failures are harder to triage and to automate in CI.
 

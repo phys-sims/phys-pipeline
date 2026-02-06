@@ -1,15 +1,15 @@
 **Title:** `<short, imperative> (e.g., CacheKey = class+config+upstream)`
 
-- **ADR ID:** `####`
-- **Status:** `Proposed | Accepted | Rejected | Superseded by ADR-#### | Deprecated`
-- **Date:** `YYYY‑MM‑DD`
+- **ADR ID:** `<ADR-PREFIX>-<ADR-ID>`
+- **Status:** `Proposed | Accepted | Rejected | Superseded by <ADR-PREFIX>-#### | Deprecated`
+- **Date:** `<DATE>`
 - **Deciders:** `@handles, @reviewers`
 - **Area:** `phys-pipeline | abcdef-sim | research-utils | cpa-sim | ecosystem`
 - **Related:** `Issue #123, PR #456, Project item link`
 - **Tags:** `performance, api, data-model, testing, ops`
 - **Scope:** `repo | ecosystem | internal`
 - **Visibility:** `public | private`
-- **Canonical ADR:** `<org/repo>/docs/adr/ADR-####.md (or path)>`
+- **Canonical ADR:** `<org/repo>/docs/adr/<ADR-PREFIX>-<ADR-ID>.md (or path)>`
 - **Impacted repos:** `phys-pipeline, abcdef-sim, glnse-sim, cpa-sim, research-utils, testbench`
 - **Related ecosystem ADRs:** `ECO-#### (link), ECO-#### (link)` *(if scope=repo and depends on ecosystem)*
 
@@ -62,6 +62,6 @@
 ### Changelog
 - `YYYY‑MM‑DD` — Proposed by @author
 - `YYYY‑MM‑DD` — Accepted by @reviewers
-- `YYYY‑MM‑DD` — Superseded by ADR‑#### (link)
+- `YYYY‑MM‑DD` — Superseded by <ADR-PREFIX>-#### (link)
 
 ---

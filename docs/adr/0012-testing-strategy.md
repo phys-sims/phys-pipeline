@@ -1,7 +1,13 @@
 **Title:** Testing strategy for physics and engineering validation
-**ADR ID:** 0012
+**ADR ID:** ADR-0012
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0012-testing-strategy.md
 
 **Context:** Physics pipelines require both software correctness and scientific validity. Tests must cover local behavior, integration, and reference-validated outcomes.
 
