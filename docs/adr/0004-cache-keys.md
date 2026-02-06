@@ -1,7 +1,13 @@
 **Title:** State hashing and cache key composition
-**ADR ID:** 0004
+**ADR ID:** ADR-0004
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0004-cache-keys.md
 
 **Context:** Reproducible simulations need stable cache keys across runs and environments. Keys must capture the state, configuration, and policy inputs that influence outputs.
 

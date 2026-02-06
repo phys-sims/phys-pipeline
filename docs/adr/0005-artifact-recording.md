@@ -1,7 +1,13 @@
 **Title:** Artifact recording and storage formats
-**ADR ID:** 0005
+**ADR ID:** ADR-0005
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0005-artifact-recording.md
 
 **Context:** Some simulation outputs are large (plots, intermediate arrays) and should not be stored in memory by default. We need an opt-in recording system that preserves artifacts without bloating results.
 

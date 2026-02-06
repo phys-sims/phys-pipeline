@@ -1,7 +1,13 @@
 **Title:** StageConfig uses frozen Pydantic models
-**ADR ID:** 0007
+**ADR ID:** ADR-0007
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0007-stageconfig.md
 
 **Context:** Stages need strongly typed configuration objects that are immutable and hashable for caching. We also need to allow scientific data types (arrays, callables) in configs.
 

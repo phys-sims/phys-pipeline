@@ -1,7 +1,13 @@
 **Title:** DiskCache format and lifecycle
-**ADR ID:** 0009
+**ADR ID:** ADR-0009
 **Status:** Proposed
 **Date:** 2026-02-03
+
+**Area:** phys-pipeline
+**Tags:** architecture
+**Scope:** repo
+**Visibility:** public
+**Canonical ADR:** phys-pipeline/docs/adr/0009-disk-cache.md
 
 **Context:** Cached stage outputs should be inspectable and portable across environments. The cache format must support structured metadata alongside array data.
 
