@@ -1,6 +1,6 @@
 [project]
 name = "phys-pipeline"
-version = "0.1.0"
+version = "1.0.0"
 description = "A physics simulation pipeline for phys-pipeline"
 authors = [
   { name = "Ryaan Lari", email = "lari2@illinois.edu" }

@@ -1,3 +1,5 @@
+__version__ = "1.0.0"
+
 from .accumulator import RunAccumulator as RunAccumulator
 from .pipeline import SequentialPipeline as SequentialPipeline
 from .policy import PolicyBag as PolicyBag
