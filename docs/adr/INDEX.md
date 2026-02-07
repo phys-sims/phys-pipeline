@@ -19,3 +19,5 @@
 | [ADR-0016](0016-executor-abstraction.md) | Executor abstraction for running scheduled stages | Proposed | 2026-02-03 | phys-pipeline | architecture |
 | [ADR-0017](0017-testing-error-taxonomy.md) | Testing error taxonomy for simulations | Proposed | 2026-02-03 | phys-pipeline | architecture |
 | [ADR-0018](0018-dag-execution-semantics.md) | Define DAG execution semantics and dependency types | Proposed | 2026-02-04 | phys-pipeline | execution, dag, caching, contracts |
+| [ADR-0019](0019-cache-backend-options-and-performance-instrumentation.md) | Cache backends = disk + redis with timing metrics | Proposed | 2026-02-07 | phys-pipeline | performance, api, data-model, ops |
+| [ADR-0020](0020-redis-cache-backend.md) | Redis cache backend implementation | Proposed | 2026-02-07 | phys-pipeline | performance, api, ops, caching |
