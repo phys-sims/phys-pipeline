@@ -5,7 +5,7 @@
 - **Date:** `2026-02-07`
 - **Deciders:** `@phys-pipeline-maintainers`
 - **Area:** `phys-pipeline`
-- **Related:** `Issue TBD, PR TBD`
+- **Related:** `ADR-0004, ADR-0009`
 - **Tags:** `performance, api, data-model, ops`
 - **Scope:** `repo`
 - **Visibility:** `public`
@@ -70,16 +70,32 @@
   performance diagnostics.
 - **Scope of adoption:** Repository-level. Disk remains the default backend; Redis is opt-in.
 
+### Actionable Implementation Plan (tied to current modules)
+1. **Cache backend interface**
+   - Add `CacheBackend` protocol and configuration object in `src/phys_pipeline/cache.py` (or new
+     `cache_config.py`).
+   - Keep `DiskCache` behavior unchanged and make it the default backend.
+2. **Serialization utilities**
+   - Add shared helpers in `src/phys_pipeline/cache.py` for serializing metadata + array payloads
+     so disk and Redis store identical payload structures.
+3. **Redis backend**
+   - Implement `RedisCache` in a new module (e.g., `src/phys_pipeline/cache_redis.py`).
+   - Use lazy import for the Redis client and surface a clear error when unavailable.
+   - Support optional TTL via Redis `EXPIRE`.
+4. **Pipeline/stage wiring**
+   - Add backend selection hooks in pipeline/stage caching logic (where cache keys are computed).
+   - Emit `cache_lookup_s` and `cache_store_s` in provenance or metrics.
+5. **Tests**
+   - Add unit tests for cache backend interface behavior.
+   - Disk tests use temp dirs; Redis tests are integration-gated via env var.
+6. **Docs**
+   - Update `docs/how-to-build-simulations.md` with backend configuration and Redis URL examples.
+
 ### Consequences
 - **Positive:** Enables shared cache across machines; supports local disk; exposes timing metrics for
   tuning; future backends can be added without redesign.
 - **Negative / Mitigations:** Optional dependency management (use extras and lazy imports); ensure
   consistent serialization across backends with shared utilities.
-- **Migration plan:**
-  1. Add backend interface + cache config objects.
-  2. Keep existing `DiskCache` behavior as the default implementation.
-  3. Add Redis backend guarded by extras (e.g., `phys-pipeline[redis]`).
-  4. Wire selection into pipeline/stage caching hook (no change to cache keys).
 - **Test strategy:**
   - Unit tests for backend interface behavior (get/put/miss semantics).
   - Disk backend tests use temp dirs.
