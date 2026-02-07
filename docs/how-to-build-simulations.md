@@ -131,3 +131,26 @@ out = pipe.run(SimpleState(None), record_artifacts=True, recorder=rec)
 ## 8. Testing and validation
 See `tests/test_smoke.py` for an end-to-end example pipeline with metrics
 and artifact recording.
+
+## 9. Cache backends
+phys-pipeline ships a disk cache format (JSON + NPZ) and an optional Redis backend. Disk remains
+the default; Redis is opt-in.
+
+```python
+from pathlib import Path
+from phys_pipeline.cache import CacheConfig, build_cache_backend
+
+disk_cache = build_cache_backend(CacheConfig(disk_root=Path(".cache/phys")))
+
+redis_cache = build_cache_backend(
+    CacheConfig(
+        backend="redis",
+        redis_url="redis://localhost:6379/0",
+        redis_prefix="phys-pipeline",
+        redis_ttl_s=3600,
+    )
+)
+```
+
+Redis usage requires installing the `redis` client package (`pip install redis`) and setting a
+reachable `redis_url`.
