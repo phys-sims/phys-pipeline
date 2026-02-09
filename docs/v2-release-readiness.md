@@ -9,6 +9,9 @@ Use this checklist before tagging a v2 release.
 - [ ] Review ADRs for DAG execution and scheduler (ADR-0014/0015/0018).
 
 ## Testing
+- [ ] Validation narrative: confirm v2 execution correctness via DAG validation (duplicate/missing/cycle),
+  scheduler/provenance capture (version + policy hash), cache hit/miss, sweep expansion, and
+  model artifact packaging tests. Summarize the results in release notes or PR description.
 - [ ] Run offline-safe checks:
   ```bash
   python -m ruff check .
