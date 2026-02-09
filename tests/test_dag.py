@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from phys_pipeline.dag import build_dag
+from phys_pipeline.dag import PipelineGraph, build_dag
 from phys_pipeline.errors import PipelineError
 from phys_pipeline.types import NodeSpec
 
@@ -22,6 +22,12 @@ def test_build_dag_topo_and_adjacency():
     assert dag.topo_order[-1] == "d"
     assert dag.deps["d"] == ["b", "c"]
     assert set(dag.reverse_deps["a"]) == {"b", "c"}
+
+
+def test_pipeline_graph_from_nodes():
+    nodes = [NodeSpec(id="a"), NodeSpec(id="b", deps=["a"])]
+    graph = PipelineGraph.from_nodes(nodes)
+    assert graph.dag.topo_order == ["a", "b"]
 
 
 def test_build_dag_duplicate_ids():

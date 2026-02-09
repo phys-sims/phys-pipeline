@@ -6,6 +6,7 @@ import pytest
 from phys_pipeline.cache import (
     CacheConfig,
     DiskCache,
+    SharedDiskCache,
     build_cache_backend,
     deserialize_cache_entry,
     serialize_cache_entry,
@@ -39,6 +40,16 @@ def test_disk_cache_roundtrip(tmp_path):
     np.testing.assert_allclose(restored["arrays"]["y"], arrays["y"])
 
 
+def test_shared_disk_cache_roundtrip(tmp_path):
+    meta, arrays = _sample_payload()
+    cache = SharedDiskCache(tmp_path)
+    cache.put("k1", meta, arrays)
+    assert cache.exists("k1")
+    restored = cache.get("k1")
+    assert restored is not None
+    assert restored["meta"] == meta
+
+
 def test_cache_config_validation():
     with pytest.raises(ValueError, match="Unsupported cache backend"):
         CacheConfig(backend="mem")
@@ -49,6 +60,11 @@ def test_cache_config_validation():
 def test_build_cache_backend_disk(tmp_path):
     backend = build_cache_backend(CacheConfig(disk_root=tmp_path))
     assert backend.name == "disk"
+
+
+def test_build_cache_backend_shared_disk(tmp_path):
+    backend = build_cache_backend(CacheConfig(backend="shared-disk", disk_root=tmp_path))
+    assert backend.name == "shared-disk"
 
 
 @pytest.mark.skipif(
