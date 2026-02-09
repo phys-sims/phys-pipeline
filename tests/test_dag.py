@@ -3,7 +3,11 @@ from __future__ import annotations
 import pytest
 
 from phys_pipeline.dag import build_dag
-from phys_pipeline.errors import PipelineError
+from phys_pipeline.errors import (
+    DAGCycleError,
+    DAGDuplicateNodeError,
+    DAGMissingDependencyError,
+)
 from phys_pipeline.types import NodeSpec
 
 
@@ -30,7 +34,7 @@ def test_build_dag_duplicate_ids():
         NodeSpec(id="a", deps=[]),
     ]
 
-    with pytest.raises(PipelineError, match="Duplicate node id"):
+    with pytest.raises(DAGDuplicateNodeError, match="Duplicate node id"):
         build_dag(nodes)
 
 
@@ -39,7 +43,7 @@ def test_build_dag_missing_dep():
         NodeSpec(id="a", deps=["missing"]),
     ]
 
-    with pytest.raises(PipelineError, match="Missing dependency"):
+    with pytest.raises(DAGMissingDependencyError, match="Missing dependency"):
         build_dag(nodes)
 
 
@@ -49,5 +53,5 @@ def test_build_dag_cycle_detection():
         NodeSpec(id="b", deps=["a"]),
     ]
 
-    with pytest.raises(PipelineError, match="Cycle detected"):
+    with pytest.raises(DAGCycleError, match="Cycle detected"):
         build_dag(nodes)

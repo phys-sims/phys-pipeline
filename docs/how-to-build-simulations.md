@@ -64,6 +64,32 @@ out = pipe.run(SimpleState(payload=None))
 print(out.metrics)
 ```
 
+## 4b. Build a DAG (v2 foundations)
+When a workflow branches or merges, represent it as a DAG. The DAG API is additive and keeps
+the sequential pipeline behavior when the graph is a straight line.
+
+```python
+from phys_pipeline.dag import PipelineNode, build_pipeline_graph
+from phys_pipeline.dag_executor import DagExecutor
+from phys_pipeline.types import SimpleState
+
+nodes = [
+    PipelineNode(id="freq", stage=FreqStage(FreqCfg(name="freq", N=2048, center=0.02, span=1e-3))),
+    PipelineNode(id="fit", stage=FitStage(FitCfg(name="fit", degree=2)), deps=["freq"]),
+]
+graph = build_pipeline_graph(nodes, name="demo-dag")
+dag_result = DagExecutor().run(graph, SimpleState(payload=None))
+print(dag_result.provenance["execution_order"])
+```
+
+For merge nodes with multiple dependencies, provide an `input_selector` that builds the
+next state from upstream results.
+
+## 4c. DAG cache keys (v2 foundations)
+DAG nodes compute cache keys from input state, stage config, policy hash, and dependency
+output hashes. The executor records `cache_key`, `input_state_hash`, and `dependency_hashes`
+per node in provenance to support stable memoization and debugging.
+
 ## 5. Optional policy overrides
 Use a `PolicyBag` to provide run-wide overrides without rebuilding the pipeline.
 Stages receive an optional `policy` argument on `process` and can ignore it when unused.
