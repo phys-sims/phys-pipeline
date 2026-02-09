@@ -64,6 +64,32 @@ out = pipe.run(SimpleState(payload=None))
 print(out.metrics)
 ```
 
+## 4b. Build and run a DAG
+Use `DagExecutor` for branched graphs. Nodes can depend on multiple parents; in that case the
+node receives a `DagState` wrapper with inputs keyed by node id.
+
+```python
+from phys_pipeline.executor import DagExecutor
+from phys_pipeline.scheduler import LocalScheduler
+from phys_pipeline.types import DagState, NodeSpec, SimpleState
+
+class MergeStage(PipelineStage[DagState, StageConfig]):
+    def process(self, state: DagState, *, policy: PolicyBag | None = None) -> StageResult:
+        total = sum(s.payload for s in state.inputs.values())
+        return StageResult(state=SimpleState(payload=total))
+
+nodes = [
+    NodeSpec(id="a", stage=FreqStage(FreqCfg(name="a", N=3, center=0.1, span=0.01))),
+    NodeSpec(id="b", deps=["a"], stage=FreqStage(FreqCfg(name="b", N=5, center=0.1, span=0.02))),
+    NodeSpec(id="c", deps=["a"], stage=FreqStage(FreqCfg(name="c", N=7, center=0.1, span=0.03))),
+    NodeSpec(id="merge", deps=["b", "c"], stage=MergeStage(StageConfig())),
+]
+
+executor = DagExecutor(scheduler=LocalScheduler(max_workers=2, max_cpu=2))
+out = executor.run(SimpleState(payload=None), nodes)
+print(out.execution_order)
+```
+
 ## 5. Optional policy overrides
 Use a `PolicyBag` to provide run-wide overrides without rebuilding the pipeline.
 Stages receive an optional `policy` argument on `process` and can ignore it when unused.
@@ -154,3 +180,21 @@ redis_cache = build_cache_backend(
 
 Redis usage requires installing the `redis` client package (`pip install redis`) and setting a
 reachable `redis_url`.
+
+## 10. DAG cache, sweeps, and schedulers
+
+Use `DagCache` to enable v2 cache keys, and `expand_sweep` to expand parameter sweeps.
+
+```python
+from phys_pipeline.cache import DiskCache
+from phys_pipeline.dag_cache import DagCache
+from phys_pipeline.sweep import SweepSpec, expand_sweep
+
+cache = DagCache(DiskCache(Path(".cache/phys-v2")))
+nodes = expand_sweep(
+    nodes,
+    [SweepSpec(node_id="b", param_grid={"N": [512, 1024, 2048]})],
+)
+executor = DagExecutor(scheduler=LocalScheduler(max_workers=4, max_cpu=4), cache=cache)
+out = executor.run(SimpleState(payload=None), nodes)
+```

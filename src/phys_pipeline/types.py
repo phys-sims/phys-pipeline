@@ -142,7 +142,36 @@ class SimpleState(State):
         return h.digest()
 
 
+class DagState(State):
+    """State wrapper for DAG nodes with multiple inputs."""
+
+    def __init__(self, inputs: dict[str, State]):
+        self.inputs = inputs
+
+    def deepcopy(self) -> DagState:
+        return DagState({k: v.deepcopy() for k, v in self.inputs.items()})
+
+    def hashable_repr(self) -> bytes:
+        h = hashlib.sha256()
+        for key in sorted(self.inputs):
+            h.update(key.encode())
+            h.update(self.inputs[key].hashable_repr())
+        return h.digest()
+
+
 # --- DAG utility --- WIP
+
+
+# DAG node resources
+@dataclass(frozen=True, slots=True)
+class NodeResources:
+    """Scheduler-facing resource requests for a DAG node."""
+
+    cpu: int = 1
+    gpu: int = 0
+    memory_gb: float | None = None
+    mpi_ranks: int = 1
+    tags: dict[str, Any] = field(default_factory=dict)
 
 
 # DAG node
@@ -154,3 +183,6 @@ class NodeSpec:
     deps: list[str] = field(default_factory=list)  # dependencies
     op_name: str = ""  # operation name
     version: str = ""
+    stage: PipelineStage[Any, Any] | None = None
+    resources: NodeResources = field(default_factory=NodeResources)
+    metadata: dict[str, Any] = field(default_factory=dict)
