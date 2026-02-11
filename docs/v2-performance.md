@@ -33,34 +33,34 @@ Use the v2 feature set together to get the most out of phys-pipeline:
 These are simple, end-to-end patterns that exercise the main features while using
 lightweight, deterministic “physics-like” stages:
 
-1. **Baseline linear pipeline (sequential)**  
-   *Use case:* build confidence in deterministic stage contracts and metrics.  
-   *Stages:* generate initial state → apply a deterministic transform → record a scalar metric.  
+1. **Baseline linear pipeline (sequential)**
+   *Use case:* build confidence in deterministic stage contracts and metrics.
+   *Stages:* generate initial state → apply a deterministic transform → record a scalar metric.
    *Why it matters:* confirms `StageConfig` immutability, `StageResult` metrics, and reproducibility.
 
-2. **Branch + merge DAG (fan-out/fan-in)**  
-   *Use case:* independent physics sub-models that get merged (e.g., two approximations).  
-   *Stages:* branch into two transforms → merge via `DagState` → compute combined metric.  
+2. **Branch + merge DAG (fan-out/fan-in)**
+   *Use case:* independent physics sub-models that get merged (e.g., two approximations).
+   *Stages:* branch into two transforms → merge via `DagState` → compute combined metric.
    *Why it matters:* exercises `NodeSpec` deps and `DagExecutor` ordering.
 
-3. **Parameter sweep (grid search)**  
-   *Use case:* run a small grid of config values with stable cache keys.  
-   *Stages:* sweep a node’s config param (e.g., sample resolution) → compute metrics.  
+3. **Parameter sweep (grid search)**
+   *Use case:* run a small grid of config values with stable cache keys.
+   *Stages:* sweep a node’s config param (e.g., sample resolution) → compute metrics.
    *Why it matters:* tests `expand_sweep`, provenance, and cache hit rates.
 
-4. **Cache reuse across repeated runs**  
-   *Use case:* simulate repeated experiments with identical configs and inputs.  
-   *Stages:* run a small DAG twice with `DagCache` enabled.  
+4. **Cache reuse across repeated runs**
+   *Use case:* simulate repeated experiments with identical configs and inputs.
+   *Stages:* run a small DAG twice with `DagCache` enabled.
    *Why it matters:* validates cache key stability and warm-run speedups.
 
-5. **Artifact recording on demand**  
-   *Use case:* generate plots or derived arrays only when needed.  
-   *Stages:* return a callable artifact (plot generator) → record only when flagged.  
+5. **Artifact recording on demand**
+   *Use case:* generate plots or derived arrays only when needed.
+   *Stages:* return a callable artifact (plot generator) → record only when flagged.
    *Why it matters:* keeps baseline runs lightweight while supporting analysis outputs.
 
-6. **Resource-constrained scheduling**  
-   *Use case:* enforce limited CPU slots per node to emulate shared compute.  
-   *Stages:* annotate nodes with `NodeResources` → run with `LocalScheduler`.  
+6. **Resource-constrained scheduling**
+   *Use case:* enforce limited CPU slots per node to emulate shared compute.
+   *Stages:* annotate nodes with `NodeResources` → run with `LocalScheduler`.
    *Why it matters:* tests scheduling and queuing behavior under resource limits.
 
 ## Benchmarks: v2 add-ons
@@ -168,7 +168,7 @@ Use this plan to find weak spots and close them systematically:
 `LocalScheduler` uses a thread pool (`ThreadPoolExecutor`) and **does not bypass the GIL** for
 CPU-bound Python code. You will see real speedups when stages are I/O-bound, or when the
 work releases the GIL (e.g., NumPy, compiled kernels, or external system calls). For
-CPU-bound pure-Python stages, thread-level parallelism is limited by the GIL.  
+CPU-bound pure-Python stages, thread-level parallelism is limited by the GIL.
 
 If you need multiprocessing, you can implement a custom `Scheduler` that uses a
 `ProcessPoolExecutor` or delegates to an external HPC system. The repo already includes
