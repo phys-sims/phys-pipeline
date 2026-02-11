@@ -90,6 +90,7 @@ Use `PolicyBag` for run-wide overrides like tolerances or instrumentation flags.
 - Architecture decisions: [`docs/adr/INDEX.md`](docs/adr/INDEX.md)
 - How to build simulations: [`docs/how-to-build-simulations.md`](docs/how-to-build-simulations.md)
 - V2 usage & performance guide: [`docs/v2-performance.md`](docs/v2-performance.md)
+- V2.0.0 release notes: [`docs/v2-release-notes.md`](docs/v2-release-notes.md)
 
 ## Roadmap (DAG execution)
 
