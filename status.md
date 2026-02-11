@@ -34,4 +34,4 @@ Last updated: 2026-02-11
 ### Release metadata
 - [x] Update version in `pyproject.toml` and `src/phys_pipeline/__init__.py`.
 - [x] Draft release notes (features, breaking changes, migration pointers).
-- [ ] Confirm CI green and artifacts published (requires remote pipeline run after push/tag).
+- [x] Confirm CI green and artifacts published (requires remote pipeline run after push/tag).
