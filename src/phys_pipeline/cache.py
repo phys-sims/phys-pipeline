@@ -3,10 +3,18 @@ from __future__ import annotations
 import io
 import json
 from pathlib import Path
-from typing import Any, Protocol
+from types import ModuleType, TracebackType
+from typing import Any, Protocol, cast
 
 import numpy as np
 from pydantic import BaseModel, Field, model_validator
+
+try:
+    import fcntl as _fcntl
+except ImportError:  # pragma: no cover - Windows fallback
+    _fcntl = None  # type: ignore[assignment]
+
+fcntl: ModuleType | None = cast(ModuleType | None, _fcntl)
 
 
 class CacheBackend(Protocol):
@@ -29,15 +37,16 @@ class CacheBackend(Protocol):
 class CacheConfig(BaseModel):
     model_config = {"extra": "forbid", "frozen": True}
 
-    backend: str = Field(default="disk", description="disk|redis")
+    backend: str = Field(default="disk", description="disk|shared-disk|redis")
     disk_root: Path = Field(default=Path(".phys_pipeline_cache"))
+    shared_lock_suffix: str = ".lock"
     redis_url: str | None = None
     redis_prefix: str = "phys-pipeline"
     redis_ttl_s: int | None = None
 
     @model_validator(mode="after")
     def _validate_backend(self) -> CacheConfig:
-        if self.backend not in {"disk", "redis"}:
+        if self.backend not in {"disk", "shared-disk", "redis"}:
             raise ValueError(f"Unsupported cache backend: {self.backend}")
         if self.backend == "redis" and not self.redis_url:
             raise ValueError("redis_url must be set when backend='redis'")
@@ -97,9 +106,67 @@ class DiskCache:
         return m.exists() and d.exists()
 
 
+class _FileLock:
+    def __init__(self, path: Path):
+        self.path = path
+        self._fh: io.BufferedWriter | None = None
+
+    def __enter__(self) -> _FileLock:
+        if fcntl is None:
+            return self
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        self._fh = self.path.open("wb")
+        fcntl.flock(self._fh, fcntl.LOCK_EX)
+        return self
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc: BaseException | None,
+        tb: TracebackType | None,
+    ) -> None:
+        if fcntl is None:
+            return
+        if self._fh is not None:
+            fcntl.flock(self._fh, fcntl.LOCK_UN)
+            self._fh.close()
+
+
+class SharedDiskCache(DiskCache):
+    name = "shared-disk"
+
+    def __init__(self, root: Path, *, lock_suffix: str = ".lock"):
+        super().__init__(root)
+        self.lock_suffix = lock_suffix
+
+    def _lock_path(self, key: str) -> Path:
+        return self.root / f"{key}{self.lock_suffix}"
+
+    def get(self, key: str) -> dict[str, Any] | None:
+        with _FileLock(self._lock_path(key)):
+            return super().get(key)
+
+    def put(
+        self,
+        key: str,
+        meta: dict[str, Any],
+        arrays: dict[str, np.ndarray],
+        *,
+        ttl_s: int | None = None,
+    ) -> None:
+        with _FileLock(self._lock_path(key)):
+            super().put(key, meta, arrays, ttl_s=ttl_s)
+
+    def exists(self, key: str) -> bool:
+        with _FileLock(self._lock_path(key)):
+            return super().exists(key)
+
+
 def build_cache_backend(config: CacheConfig) -> CacheBackend:
     if config.backend == "disk":
         return DiskCache(config.disk_root)
+    if config.backend == "shared-disk":
+        return SharedDiskCache(config.disk_root, lock_suffix=config.shared_lock_suffix)
     from .cache_redis import RedisCache
 
     return RedisCache(

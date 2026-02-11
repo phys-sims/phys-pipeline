@@ -3,20 +3,27 @@ __version__ = "1.0.0"
 from .accumulator import RunAccumulator as RunAccumulator
 from .cache import CacheConfig as CacheConfig
 from .cache import DiskCache as DiskCache
+from .cache import SharedDiskCache as SharedDiskCache
 from .cache import build_cache_backend as build_cache_backend
+from .dag_cache import DagCache as DagCache
+from .executor import DagExecutor as DagExecutor
+from .executor import RetryPolicy as RetryPolicy
+from .hpc import MockHpcScheduler as MockHpcScheduler
+from .hpc import PbsScheduler as PbsScheduler
+from .hpc import SlurmScheduler as SlurmScheduler
+from .ml_artifacts import ModelArtifactPackager as ModelArtifactPackager
 from .pipeline import SequentialPipeline as SequentialPipeline
 from .policy import PolicyBag as PolicyBag
 from .record import ArtifactRecorder as ArtifactRecorder
 from .record import JSONLRecorder as JSONLRecorder
-from .types import (
-    PipelineStage as PipelineStage,
-)
-from .types import (
-    StageConfig as StageConfig,
-)
-from .types import (
-    StageResult as StageResult,
-)
-from .types import (
-    State as State,
-)
+from .scheduler import LocalScheduler as LocalScheduler
+from .scheduler import Scheduler as Scheduler
+from .sweep import SweepSpec as SweepSpec
+from .sweep import expand_sweep as expand_sweep
+from .types import DagState as DagState
+from .types import NodeResources as NodeResources
+from .types import NodeSpec as NodeSpec
+from .types import PipelineStage as PipelineStage
+from .types import StageConfig as StageConfig
+from .types import StageResult as StageResult
+from .types import State as State

@@ -7,6 +7,9 @@ requires:
 - **Documentation updates**
 - **CI green** before moving to the next feature
 
+> **Status:** Implemented across the codebase (see `docs/v2-migration.md` and
+> `docs/v2-release-readiness.md` for follow-up guidance).
+
 ## Phase 1 — Foundations (DAG model + cache keying)
 
 ### Feature 1.1: DAG data model and validation

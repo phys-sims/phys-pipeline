@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import deque
 from dataclasses import dataclass
 
-from .errors import PipelineError
+from .errors import DagCycleError, DagDuplicateNodeError, DagMissingDependencyError
 from .types import NodeSpec
 
 
@@ -15,6 +15,16 @@ class Dag:
     topo_order: list[str]
 
 
+@dataclass(frozen=True, slots=True)
+class PipelineGraph:
+    nodes: list[NodeSpec]
+    dag: Dag
+
+    @classmethod
+    def from_nodes(cls, nodes: list[NodeSpec]) -> PipelineGraph:
+        return cls(nodes=nodes, dag=build_dag(nodes))
+
+
 def build_dag(nodes: list[NodeSpec]) -> Dag:
     nodes_by_id: dict[str, NodeSpec] = {}
     deps: dict[str, list[str]] = {}
@@ -22,7 +32,7 @@ def build_dag(nodes: list[NodeSpec]) -> Dag:
 
     for node in nodes:
         if node.id in nodes_by_id:
-            raise PipelineError(f"Duplicate node id: {node.id}")
+            raise DagDuplicateNodeError(f"Duplicate node id: {node.id}")
         nodes_by_id[node.id] = node
         deps[node.id] = list(node.deps)
         reverse_deps[node.id] = []
@@ -30,7 +40,7 @@ def build_dag(nodes: list[NodeSpec]) -> Dag:
     for node_id, node_deps in deps.items():
         for dep in node_deps:
             if dep not in nodes_by_id:
-                raise PipelineError(f"Missing dependency '{dep}' for node '{node_id}'")
+                raise DagMissingDependencyError(f"Missing dependency '{dep}' for node '{node_id}'")
             reverse_deps[dep].append(node_id)
 
     in_degree = {node_id: len(node_deps) for node_id, node_deps in deps.items()}
@@ -46,7 +56,7 @@ def build_dag(nodes: list[NodeSpec]) -> Dag:
                 ready.append(dependent)
 
     if len(topo_order) != len(nodes_by_id):
-        raise PipelineError("Cycle detected in DAG")
+        raise DagCycleError("Cycle detected in DAG")
 
     return Dag(
         nodes_by_id=nodes_by_id,
