@@ -4,15 +4,14 @@ Last updated: 2026-02-11
 
 ## Completed in this update
 
-- ✅ Ran slow-test suite for release validation:
-  - `python -m pytest -q -m "slow"`
-  - Result: `1 passed, 46 deselected`
-- ✅ Captured current release-readiness snapshot for v2.
-- ✅ Audited v2 documentation coverage and confirmed required docs are current:
-  - README contains DAG + scheduler overview.
-  - `docs/how-to-build-simulations.md` includes DAG examples.
-  - `docs/v2-migration.md` reflects current v1 → v2 guidance.
-  - ADR index includes ADR-0014, ADR-0015, and ADR-0018 entries.
+- ✅ Bumped local package version to `2.0.0` in project metadata and runtime version export.
+- ✅ Updated version assertion test to validate `2.0.0`.
+- ✅ Added dedicated `v2.0.0` release notes.
+- ✅ Updated README documentation index to include v2.0.0 release notes.
+- ✅ Updated release-readiness checklist to reflect completed validation and benchmark capture.
+- ✅ Ran v2 benchmark script and recorded outputs:
+  - Cache benchmark: cold `0.0037s`, warm `0.0005s`.
+  - Scheduler benchmark: `0.0112s`.
 
 ## v2 readiness snapshot
 
@@ -23,16 +22,16 @@ Last updated: 2026-02-11
 - [x] Review ADRs for DAG execution and scheduler (ADR-0014/0015/0018).
 
 ### Testing
-- [ ] Validation narrative covering DAG validation, scheduler/provenance capture, cache hit/miss,
+- [x] Validation narrative covering DAG validation, scheduler/provenance capture, cache hit/miss,
       sweep expansion, and model artifact packaging.
-- [ ] Run offline-safe checks (`ruff`, `black --check`, `mypy`, `pytest -m "not slow"`).
+- [x] Run offline-safe checks (`ruff`, `black --check`, `mypy`, `pytest -m "not slow"`).
 - [x] Run slow tests (`pytest -m "slow"`).
 
 ### Benchmarks
-- [ ] Run `python scripts/benchmarks.py`.
-- [ ] Record cache hit/miss results and scheduler overhead.
+- [x] Run `python scripts/benchmarks.py`.
+- [x] Record cache hit/miss results and scheduler overhead.
 
 ### Release metadata
-- [ ] Update version in `pyproject.toml` and `src/phys_pipeline/__init__.py`.
-- [ ] Draft release notes (features, breaking changes, migration pointers).
-- [ ] Confirm CI green and artifacts published.
+- [x] Update version in `pyproject.toml` and `src/phys_pipeline/__init__.py`.
+- [x] Draft release notes (features, breaking changes, migration pointers).
+- [ ] Confirm CI green and artifacts published (requires remote pipeline run after push/tag).
