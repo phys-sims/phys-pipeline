@@ -92,13 +92,6 @@ Use `PolicyBag` for run-wide overrides like tolerances or instrumentation flags.
 - V2 usage & performance guide: [`docs/v2-performance.md`](docs/v2-performance.md)
 - V2.0.0 release notes: [`docs/v2-release-notes.md`](docs/v2-release-notes.md)
 
-## Roadmap (DAG execution)
-
-The v2 roadmap (DAG + scheduler + cache + ML/HPC adapters) is implemented. See:
-
-- `docs/v2-rollout-plan.md` for the original feature plan.
-- `docs/v2-migration.md` for v1 → v2 guidance.
-- `docs/v2-release-readiness.md` for release readiness checks.
 
 ## License
 
